@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: meta-social-media-manager
+    env: node
+    buildCommand: npm run install:all && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: NODE_ENV
+        value: production
+      - key: META_GRAPH_API
+        value: https://graph.facebook.com/v21.0

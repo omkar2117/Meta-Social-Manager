@@ -1,0 +1,19 @@
+{
+  "name": "meta-social-media-manager",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-Stack Meta Social Media Manager SaaS Application",
+  "scripts": {
+    "install:all": "npm install --prefix client && npm install --prefix server",
+    "build:client": "npm run build --prefix client",
+    "build:server": "npm run build --prefix server",
+    "build": "npm run build:client && npm run build:server",
+    "start": "node server/dist/index.js",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
