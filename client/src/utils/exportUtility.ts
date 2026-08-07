@@ -1,5 +1,12 @@
 import type { DashboardData, ComputedAnalytics } from '../types/instagram';
 
+function escapeCsvField(field: string): string {
+  if (field.includes(',') || field.includes('"') || field.includes('\n') || field.includes('\r')) {
+    return '"' + field.replace(/"/g, '""') + '"';
+  }
+  return field;
+}
+
 export function exportDashboardToCSV(data: DashboardData, computed: ComputedAnalytics) {
   const rows: string[][] = [];
 
@@ -21,6 +28,9 @@ export function exportDashboardToCSV(data: DashboardData, computed: ComputedAnal
   rows.push(['Engagement Rate (%)', `${computed.engagementRate}%`]);
   rows.push(['Avg Likes / Post', computed.avgLikesPerPost.toString()]);
   rows.push(['Avg Comments / Post', computed.avgCommentsPerPost.toString()]);
+  rows.push(['Total Likes', computed.totalLikes.toString()]);
+  rows.push(['Total Comments', computed.totalComments.toString()]);
+  rows.push(['Total Engagement', computed.totalEngagement.toString()]);
   rows.push(['Posts This Week', computed.postsThisWeek.toString()]);
   rows.push(['Posts This Month', computed.postsThisMonth.toString()]);
   rows.push(['Images Count', computed.mediaTypeDistribution.images.toString()]);
@@ -34,7 +44,7 @@ export function exportDashboardToCSV(data: DashboardData, computed: ComputedAnal
   rows.push(['Post ID', 'Media Type', 'Timestamp', 'Likes', 'Comments', 'Permalink', 'Caption Preview']);
 
   data.media.forEach(m => {
-    const captionClean = m.caption ? `"${m.caption.replace(/"/g, '""').slice(0, 100)}"` : '';
+    const captionPreview = m.caption ? m.caption.slice(0, 100) : '';
     rows.push([
       m.id,
       m.media_type,
@@ -42,16 +52,20 @@ export function exportDashboardToCSV(data: DashboardData, computed: ComputedAnal
       (m.like_count || 0).toString(),
       (m.comments_count || 0).toString(),
       m.permalink,
-      captionClean,
+      captionPreview,
     ]);
   });
 
-  const csvContent = 'data:text/csv;charset=utf-8,' + rows.map(e => e.join(',')).join('\n');
-  const encodedUri = encodeURI(csvContent);
+  // Build CSV using Blob (safe for all Unicode characters)
+  const csvString = rows.map(row => row.map(escapeCsvField).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+
   const link = document.createElement('a');
-  link.setAttribute('href', encodedUri);
+  link.setAttribute('href', url);
   link.setAttribute('download', `instagram_report_${data.profile.username}_${new Date().toISOString().slice(0, 10)}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
