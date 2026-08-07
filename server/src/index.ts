@@ -52,8 +52,8 @@ if (fs.existsSync(clientDistPath)) {
 }
 
 // ── Start Server ───────────────────────────────────────
-app.listen(PORT, () => {
+app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`\n🚀 Meta Social Manager API Server`);
-  console.log(`   Running on http://localhost:${PORT}`);
-  console.log(`   Health: http://localhost:${PORT}/api/health\n`);
+  console.log(`   Running on http://0.0.0.0:${PORT}`);
+  console.log(`   Health: http://0.0.0.0:${PORT}/api/health\n`);
 });
