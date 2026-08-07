@@ -11,6 +11,7 @@
     "start": "node server/dist/index.js",
     "postinstall": "npm run install:all",
     "dev:server": "cd server && npm run dev",
-    "dev:client": "cd client && npm run dev"
+    "dev:client": "cd client && npm run dev",
+    "pages:dev": "npx wrangler pages dev client/dist --port 3001"
   }
 }
