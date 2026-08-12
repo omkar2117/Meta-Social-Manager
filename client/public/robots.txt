@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Allow: /privacy-policy
+Allow: /privacy-policy.html
+
+User-agent: facebookexternalhit
+Allow: /
+Allow: /privacy-policy
+
+User-agent: Facebot
+Allow: /
+Allow: /privacy-policy
+
+Sitemap: https://meta-social-manager.pages.dev/privacy-policy

@@ -1,0 +1,13 @@
+/privacy-policy
+  Content-Type: text/html; charset=utf-8
+  X-Robots-Tag: index, follow
+  Cache-Control: public, max-age=300
+
+/privacy-policy.html
+  Content-Type: text/html; charset=utf-8
+  X-Robots-Tag: index, follow
+  Cache-Control: public, max-age=300
+
+/robots.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=300

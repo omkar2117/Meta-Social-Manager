@@ -13,7 +13,7 @@
 
 **Meta Social Manager** connects an Instagram Business/Creator account via a Meta access token, shows profile/media/insights, and includes a Boost Post flow (Create Boost stays locked until the Meta app is Live and a Privacy Policy URL is configured).
 
-**Production:** one Cloudflare Pages URL serves the React app + Pages Functions (`/api/*`) + `/privacy-policy.html`.
+**Production:** one Cloudflare Pages URL serves the React app + Pages Functions (`/api/*`) + `/privacy-policy`.
 
 **Local:** Express (`server/`) and/or Vite remain available for development.
 
@@ -72,7 +72,7 @@ Recommended Production env vars (Create Boost stays locked):
 Same-origin paths after deploy:
 
 - `/`
-- `/privacy-policy.html`
+- `/privacy-policy`
 - `/api/health`
 - `/api/meta/*`
 - `/api/boost/*`
