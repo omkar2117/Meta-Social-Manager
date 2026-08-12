@@ -7,6 +7,7 @@ import {
   getObjectiveConfig,
   parseBoostMetaError,
   parseCreateBody,
+  resolveMetaAdSetSchedule,
   searchAdInterests,
   searchAdLocations,
   validateBoostInput,
@@ -433,9 +434,8 @@ export const onRequest: PagesFunction = async (context) => {
               eligibility,
             }), { headers, status: 400 });
           }
-          const start = new Date(input.startDate);
-          const end = new Date(input.endDate);
-          const durationDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)));
+          const schedule = resolveMetaAdSetSchedule(input.startDate, input.endDate);
+          const durationDays = schedule.durationDays;
           return new Response(JSON.stringify({
             success: true,
             review: {
@@ -455,8 +455,8 @@ export const onRequest: PagesFunction = async (context) => {
               dailyBudget: input.dailyBudgetMajor,
               currency: minInfo.currency,
               minDailyBudgetMinor: minInfo.minDailyBudgetMinor,
-              startDate: input.startDate,
-              endDate: input.endDate,
+              startDate: schedule.startTime,
+              endDate: schedule.endTime,
               durationDays,
               estimatedSpendMajor: input.dailyBudgetMajor * durationDays,
               estimatedSpendNote: 'Estimated total = daily budget × duration days. Not a Meta delivery estimate.',

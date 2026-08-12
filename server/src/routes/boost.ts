@@ -7,6 +7,7 @@ import {
   fetchAdAccounts,
   getObjectiveConfig,
   parseBoostMetaError,
+  resolveMetaAdSetSchedule,
   searchAdInterests,
   searchAdLocations,
   validateBoostInput,
@@ -190,12 +191,8 @@ router.post('/review', async (req, res) => {
       return;
     }
 
-    const start = new Date(input.startDate);
-    const end = new Date(input.endDate);
-    const durationDays = Math.max(
-      1,
-      Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000))
-    );
+    const schedule = resolveMetaAdSetSchedule(input.startDate, input.endDate);
+    const durationDays = schedule.durationDays;
     const estimatedTotalMajor = input.dailyBudgetMajor * durationDays;
 
     res.json({
@@ -217,8 +214,8 @@ router.post('/review', async (req, res) => {
         dailyBudget: input.dailyBudgetMajor,
         currency: minInfo.currency,
         minDailyBudgetMinor: minInfo.minDailyBudgetMinor,
-        startDate: input.startDate,
-        endDate: input.endDate,
+        startDate: schedule.startTime,
+        endDate: schedule.endTime,
         durationDays,
         // Client-calculated estimate (not a Meta delivery estimate)
         estimatedSpendMajor: estimatedTotalMajor,

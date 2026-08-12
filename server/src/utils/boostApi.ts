@@ -80,6 +80,58 @@ export function fromMinorUnits(amountMinor: number, currency: string): number {
   return amountMinor / currencyOffset(currency);
 }
 
+/** Meta requires daily-budget ad sets to run for at least 24 hours. Exact 24h can fail. */
+export const META_DAILY_BUDGET_MIN_MS = 24 * 60 * 60 * 1000;
+/** Extra second buffer so timezone/rounding cannot shrink the schedule under 24h. */
+export const META_SCHEDULE_SAFETY_BUFFER_MS = 60 * 1000;
+
+/**
+ * Normalize Boost start/end for Meta Ad Set start_time/end_time.
+ * Preserves the user's selected day-count, but guarantees:
+ *   end - start >= max(requestedDays, 1) * 24h + 60s
+ * Does not call Meta.
+ */
+export function resolveMetaAdSetSchedule(
+  startDate: string,
+  endDate: string
+): { startTime: string; endTime: string; durationMs: number; durationDays: number } {
+  const startRaw = new Date(startDate);
+  const endRaw = new Date(endDate);
+  if (Number.isNaN(startRaw.getTime()) || Number.isNaN(endRaw.getTime())) {
+    throw new Error('Start and end dates must be valid.');
+  }
+
+  // Normalize to whole seconds (avoid ms truncation surprises with Meta).
+  const startMs = Math.floor(startRaw.getTime() / 1000) * 1000;
+  let endMs = Math.floor(endRaw.getTime() / 1000) * 1000;
+
+  if (endMs <= startMs) {
+    throw new Error('End date must be after start date.');
+  }
+
+  const requestedMs = endMs - startMs;
+  // Keep the user's intended day count (1, 2, 7, …) based on the requested span.
+  const durationDays = Math.max(1, Math.round(requestedMs / META_DAILY_BUDGET_MIN_MS));
+  const requiredMs = durationDays * META_DAILY_BUDGET_MIN_MS + META_SCHEDULE_SAFETY_BUFFER_MS;
+
+  if (endMs - startMs < requiredMs) {
+    endMs = startMs + requiredMs;
+  }
+
+  // Absolute floor for daily-budget ad sets.
+  const absoluteMinMs = META_DAILY_BUDGET_MIN_MS + META_SCHEDULE_SAFETY_BUFFER_MS;
+  if (endMs - startMs < absoluteMinMs) {
+    endMs = startMs + absoluteMinMs;
+  }
+
+  return {
+    startTime: new Date(startMs).toISOString(),
+    endTime: new Date(endMs).toISOString(),
+    durationMs: endMs - startMs,
+    durationDays,
+  };
+}
+
 // ── Types ──────────────────────────────────────────────
 
 export interface AdAccountInfo {
@@ -654,8 +706,10 @@ export function validateBoostInput(input: BoostCreateInput, currency: string, mi
     errors.push('Start and end dates must be valid.');
   } else {
     if (end <= start) errors.push('End date must be after start date.');
+    // Raw UI span may be exactly 24h; Meta requires a safe floor — createBoost adds buffer.
+    // Reject only clearly too-short schedules (< 24h).
     const durationMs = end.getTime() - start.getTime();
-    if (durationMs < 24 * 60 * 60 * 1000) {
+    if (durationMs < META_DAILY_BUDGET_MIN_MS) {
       errors.push('Duration must be at least 24 hours for a daily budget ad set.');
     }
   }
@@ -752,8 +806,9 @@ export async function createBoost(input: BoostCreateInput): Promise<BoostCreateR
 
   const dailyBudgetMinor = toMinorUnits(input.dailyBudgetMajor, currency);
   const status = input.status || 'PAUSED';
-  const startTime = new Date(input.startDate).toISOString();
-  const endTime = new Date(input.endDate).toISOString();
+  const schedule = resolveMetaAdSetSchedule(input.startDate, input.endDate);
+  const startTime = schedule.startTime;
+  const endTime = schedule.endTime;
   const partial: BoostPartialIds = {};
   let failedStep: BoostCreateResult['failedStep'] = 'unknown';
 

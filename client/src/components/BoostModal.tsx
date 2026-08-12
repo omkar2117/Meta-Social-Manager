@@ -44,10 +44,14 @@ interface BoostModalProps {
 
 type Step = 'form' | 'review' | 'success' | 'error';
 
+/** Matches server Meta schedule safety buffer (avoid exact-24h rejection). */
+const SCHEDULE_SAFETY_BUFFER_MS = 60 * 1000;
+
 function defaultDates(durationDays: number) {
   const start = new Date();
   start.setMinutes(0, 0, 0);
-  const end = new Date(start.getTime() + durationDays * 24 * 60 * 60 * 1000);
+  // End = N full days + 60s so Meta daily-budget ad sets stay >= 24h*N.
+  const end = new Date(start.getTime() + durationDays * 24 * 60 * 60 * 1000 + SCHEDULE_SAFETY_BUFFER_MS);
   const toLocal = (d: Date) => {
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -187,7 +191,9 @@ export function BoostModal({
   useEffect(() => {
     const start = new Date(form.startDate);
     if (Number.isNaN(start.getTime())) return;
-    const end = new Date(start.getTime() + form.durationDays * 24 * 60 * 60 * 1000);
+    const end = new Date(
+      start.getTime() + form.durationDays * 24 * 60 * 60 * 1000 + SCHEDULE_SAFETY_BUFFER_MS
+    );
     const pad = (n: number) => String(n).padStart(2, '0');
     const endLocal = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
     setForm((f) => (f.endDate === endLocal ? f : { ...f, endDate: endLocal }));
