@@ -139,8 +139,8 @@ export interface BoostReadiness {
   warningMessage: string | null;
   checklist: {
     privacyPolicyUrl: 'Configured' | 'Not configured';
-    metaAppMode: 'Live/Public' | 'Development';
-    realBoostCreation: 'Available' | 'Locked';
+    metaAppMode: 'Live' | 'Development';
+    realBoostCreation: 'Unlocked' | 'Locked';
   };
   source: 'env';
 }

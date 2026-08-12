@@ -229,7 +229,12 @@ export const onRequest: PagesFunction = async (context) => {
     // GET /api/boost/readiness — config only, no Meta create calls
     if (path === '/api/boost/readiness' && request.method === 'GET') {
       const readiness = getBoostReadiness(env as Record<string, unknown>);
-      return new Response(JSON.stringify({ success: true, readiness }), { headers });
+      const readinessHeaders = new Headers(headers);
+      readinessHeaders.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      readinessHeaders.set('Pragma', 'no-cache');
+      return new Response(JSON.stringify({ success: true, readiness }), {
+        headers: readinessHeaders,
+      });
     }
 
     // POST calls only for endpoints below

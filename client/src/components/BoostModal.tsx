@@ -244,6 +244,9 @@ export function BoostModal({
         setError(eligibilityNote || 'Post is not eligible for promotion.');
         return;
       }
+      // Refresh readiness from production API (never fake unlock in the UI)
+      const ready = await fetchBoostReadiness();
+      setReadiness(ready);
       const { review: reviewData } = await reviewBoost(buildPayload());
       setReview(reviewData);
       setStep('review');
@@ -769,7 +772,9 @@ export function BoostModal({
                 {readiness && (
                   <div className="glass-card p-4 space-y-2">
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                      Pre-Live checklist
+                      {readiness.boostCreationEnabled
+                        ? 'Production readiness'
+                        : 'Pre-Live checklist'}
                     </h4>
                     <ChecklistRow
                       label="Privacy Policy URL"

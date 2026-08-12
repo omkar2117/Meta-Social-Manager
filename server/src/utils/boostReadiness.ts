@@ -17,8 +17,8 @@ export interface BoostReadiness {
   warningMessage: string | null;
   checklist: {
     privacyPolicyUrl: 'Configured' | 'Not configured';
-    metaAppMode: 'Live/Public' | 'Development';
-    realBoostCreation: 'Available' | 'Locked';
+    metaAppMode: 'Live' | 'Development';
+    realBoostCreation: 'Unlocked' | 'Locked';
   };
   source: 'env';
 }
@@ -54,8 +54,8 @@ export function getBoostReadiness(env: BoostReadinessEnv = {}): BoostReadiness {
     warningMessage: boostCreationEnabled ? null : DEVELOPMENT_WARNING,
     checklist: {
       privacyPolicyUrl: privacyPolicyConfigured ? 'Configured' : 'Not configured',
-      metaAppMode: appMode === 'live' ? 'Live/Public' : 'Development',
-      realBoostCreation: boostCreationEnabled ? 'Available' : 'Locked',
+      metaAppMode: appMode === 'live' ? 'Live' : 'Development',
+      realBoostCreation: boostCreationEnabled ? 'Unlocked' : 'Locked',
     },
     source: 'env',
   };

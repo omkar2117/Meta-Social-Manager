@@ -44,6 +44,8 @@ router.get('/objectives', (_req, res) => {
 /** Safe readiness probe — does not call Meta create APIs */
 router.get('/readiness', (_req, res) => {
   const readiness = getBoostReadinessFromProcessEnv();
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
   res.json({ success: true, readiness });
 });
 

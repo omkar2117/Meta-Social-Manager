@@ -62,12 +62,14 @@ Recommended dashboard settings (keep **repository root**, do not set root to `cl
 
 **Do not set `VITE_API_BASE_URL` in Cloudflare.** Production builds force same-origin `/api/*`.
 
-Recommended Production env vars (Create Boost stays locked):
+Recommended Production env vars (Create Boost unlocked when Meta App is Live):
 
 | Variable | Value |
 |----------|--------|
-| `META_APP_MODE` | `development` |
-| `META_PRIVACY_POLICY_CONFIGURED` | `false` |
+| `META_APP_MODE` | `live` |
+| `META_PRIVACY_POLICY_CONFIGURED` | `true` |
+
+These are also set in `wrangler.toml` `[vars]` so Git deploys do not re-lock Boost.
 
 Same-origin paths after deploy:
 
