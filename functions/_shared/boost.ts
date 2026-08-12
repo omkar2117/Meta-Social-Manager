@@ -369,15 +369,24 @@ export interface BoostCreateInput {
 function buildTargeting(input: BoostCreateInput) {
   const countries = input.locationCountries.map((c) => c.toUpperCase());
   if (!countries.length) throw new Error('At least one location country is required for targeting.');
+
+  // Meta Marketing API v25 requires targeting_automation.advantage_audience (0 or 1).
+  const advantageAudience = input.audienceMode === 'automatic' ? 1 : 0;
+
   const targeting: Record<string, unknown> = {
     geo_locations: { countries },
     publisher_platforms: ['instagram'],
     instagram_positions: ['stream', 'story', 'reels', 'explore'],
+    targeting_automation: {
+      advantage_audience: advantageAudience,
+    },
   };
+
   if (input.audienceMode === 'automatic') {
-    targeting.targeting_automation = { advantage_audience: 1 };
     return targeting;
   }
+
+  // Custom audience: Advantage Audience off (0); apply explicit demographics/interests.
   if (input.ageMin !== undefined) targeting.age_min = input.ageMin;
   if (input.ageMax !== undefined) targeting.age_max = input.ageMax;
   if (input.genders?.length) targeting.genders = input.genders;
@@ -385,6 +394,11 @@ function buildTargeting(input: BoostCreateInput) {
     targeting.flexible_spec = [{ interests: input.interestIds.map((i) => ({ id: i.id, ...(i.name ? { name: i.name } : {}) })) }];
   }
   return targeting;
+}
+
+/** Exported for local payload verification only — does not call Meta. */
+export function buildBoostTargetingForTest(input: BoostCreateInput) {
+  return buildTargeting(input);
 }
 
 function buildCreativePayload(input: BoostCreateInput, objective: BoostObjectiveConfig) {
