@@ -130,6 +130,10 @@ async function marketingDelete(objectId: string, accessToken: string) {
 export const APP_DEVELOPMENT_MODE_MESSAGE =
   'Your Meta app is currently in Development Mode. Switch the Meta app to Live/Public mode before creating a real Boost ad.';
 
+/** Clear copy when Meta rejects creation due to missing Ad Account payment method. */
+export const AD_ACCOUNT_PAYMENT_REQUIRED_MESSAGE =
+  'Meta requires a valid payment method on this Ad Account before this Boost can run.';
+
 export function isAppDevelopmentModeError(meta: {
   code?: number;
   error_subcode?: number;
@@ -140,6 +144,35 @@ export function isAppDevelopmentModeError(meta: {
   if (meta.error_subcode === 1885183) return true;
   const blob = `${meta.error_user_msg || ''} ${meta.error_user_title || ''} ${meta.message || ''}`.toLowerCase();
   return blob.includes('development mode') && blob.includes('must be') && blob.includes('public');
+}
+
+/** Detect Meta billing / payment-method failures (no card collection in this app). */
+export function isPaymentMethodError(meta: {
+  code?: number;
+  error_subcode?: number;
+  message?: string;
+  error_user_msg?: string;
+  error_user_title?: string;
+  type?: string;
+}): boolean {
+  const blob = `${meta.error_user_msg || ''} ${meta.error_user_title || ''} ${meta.message || ''}`.toLowerCase();
+  return (
+    blob.includes('payment method') ||
+    blob.includes('payment centre') ||
+    blob.includes('payment center') ||
+    blob.includes('billing and payment') ||
+    blob.includes('add a valid payment') ||
+    blob.includes('update payment method') ||
+    blob.includes('no valid payment') ||
+    blob.includes('billing information') ||
+    (blob.includes('billing') && blob.includes('payment'))
+  );
+}
+
+/** Real Ads Manager billing URL from the selected ad account ID (no hardcoded account). */
+export function buildAdsBillingUrl(adAccountId: string): string {
+  const act = String(adAccountId || '').replace(/^act_/, '');
+  return `https://www.facebook.com/adsmanager/billing?act=${encodeURIComponent(act)}`;
 }
 
 export async function rollbackPartialBoost(
@@ -182,6 +215,17 @@ export function parseBoostMetaError(error: any) {
         details: human,
         metaCode: code,
         metaSubcode: error_subcode ?? 1885183,
+      };
+    }
+
+    if (isPaymentMethodError(error.data.error)) {
+      return {
+        status: 402,
+        code: 'AD_ACCOUNT_PAYMENT_REQUIRED',
+        message: AD_ACCOUNT_PAYMENT_REQUIRED_MESSAGE,
+        details: human,
+        metaCode: code,
+        metaSubcode: error_subcode,
       };
     }
 
@@ -505,6 +549,8 @@ export async function createBoost(input: BoostCreateInput) {
       partial: Object.keys(partial).length ? partial : undefined,
       rollback,
       adAccountId: actId,
+      billingUrl:
+        parsed.code === 'AD_ACCOUNT_PAYMENT_REQUIRED' ? buildAdsBillingUrl(actId) : undefined,
       error: {
         code: parsed.code,
         message: parsed.message,

@@ -83,6 +83,7 @@ export function BoostModal({
   } | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [failedStep, setFailedStep] = useState<string | null>(null);
+  const [billingUrl, setBillingUrl] = useState<string | null>(null);
 
   const [objectives, setObjectives] = useState<BoostObjectiveOption[]>([]);
   const [accounts, setAccounts] = useState<AdAccountOption[]>([]);
@@ -275,6 +276,7 @@ export function BoostModal({
     setFailedStep(null);
     setPartialIds(undefined);
     setRollbackInfo(null);
+    setBillingUrl(null);
     try {
       const result = await createBoost({ ...buildPayload(), confirmCreate: true });
       if (!result.success) {
@@ -283,6 +285,11 @@ export function BoostModal({
         setRollbackInfo(result.rollback ?? null);
         setErrorCode(result.error?.code || null);
         setFailedStep(result.failedStep || null);
+        setBillingUrl(result.billingUrl || (
+            form.adAccountId
+              ? `https://www.facebook.com/adsmanager/billing?act=${String(form.adAccountId).replace(/^act_/, '')}`
+              : null
+          ));
         setError(
           result.error?.message ||
             'Boost creation failed. Meta did not confirm a successful campaign.'
@@ -317,6 +324,17 @@ export function BoostModal({
       if (axiosData?.rollback) setRollbackInfo(axiosData.rollback);
       if (axiosData?.failedStep) setFailedStep(axiosData.failedStep);
       setErrorCode(axiosData?.error?.code || axiosData?.code || null);
+      const errBilling =
+        (axiosData as { billingUrl?: string })?.billingUrl ||
+        (form.adAccountId
+          ? `https://www.facebook.com/adsmanager/billing?act=${String(form.adAccountId).replace(/^act_/, '')}`
+          : null);
+      if (
+        axiosData?.error?.code === 'AD_ACCOUNT_PAYMENT_REQUIRED' ||
+        axiosData?.code === 'AD_ACCOUNT_PAYMENT_REQUIRED'
+      ) {
+        setBillingUrl(errBilling);
+      }
       setError(getBoostErrorMessage(err));
       setStep('error');
     } finally {
@@ -882,6 +900,30 @@ export function BoostModal({
                     </p>
                     {failedStep && (
                       <p className="text-xs text-amber-200/70">Failed step: {failedStep}</p>
+                    )}
+                  </div>
+                ) : errorCode === 'AD_ACCOUNT_PAYMENT_REQUIRED' ? (
+                  <div className="space-y-2 text-sm bg-amber-500/10 border border-amber-500/25 rounded-xl px-3 py-3 text-amber-100">
+                    <p className="font-semibold text-amber-200">
+                      Meta requires a valid payment method on this Ad Account.
+                    </p>
+                    <p className="text-xs text-amber-200/80">
+                      Your Meta Ad Account needs a valid payment method before this Boost can run.
+                      This app does not collect card details — add or update billing in Meta Ads
+                      Manager, then try Create Boost again.
+                    </p>
+                    {failedStep && (
+                      <p className="text-xs text-amber-200/70">Failed step: {failedStep}</p>
+                    )}
+                    {billingUrl && (
+                      <a
+                        href={billingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex text-xs font-semibold text-violet-300 hover:text-violet-200 underline underline-offset-2"
+                      >
+                        Add/Update payment method in Meta Ads Manager
+                      </a>
                     )}
                   </div>
                 ) : (

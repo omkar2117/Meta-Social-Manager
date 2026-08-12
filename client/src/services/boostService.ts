@@ -128,6 +128,7 @@ export async function createBoost(
           partial: data.partial as BoostCreateFailure['partial'],
           rollback: data.rollback as BoostCreateFailure['rollback'],
           adAccountId: data.adAccountId as string | undefined,
+          billingUrl: (data.billingUrl as string | null | undefined) ?? null,
           error: (data.error as BoostCreateFailure['error']) || {
             code: String(data.code || 'META_ADS_ERROR'),
             message: String(data.message || 'Boost creation failed.'),
@@ -158,6 +159,16 @@ export function getBoostErrorMessage(err: unknown): string {
         data.error?.message ||
         data.message ||
         'Your Meta app is currently in Development Mode. Switch the Meta app to Live/Public mode before creating a real Boost ad.'
+      );
+    }
+    if (
+      data?.error?.code === 'AD_ACCOUNT_PAYMENT_REQUIRED' ||
+      data?.code === 'AD_ACCOUNT_PAYMENT_REQUIRED'
+    ) {
+      return (
+        data.error?.message ||
+        data.message ||
+        'Meta requires a valid payment method on this Ad Account before this Boost can run.'
       );
     }
     return (

@@ -275,14 +275,16 @@ router.post('/create', async (req, res) => {
         result.error?.code === 'INVALID_OBJECTIVE' ||
         result.error?.code === 'AD_ACCOUNT_NOT_ELIGIBLE'
           ? 400
-          : result.error?.code === 'APP_IN_DEVELOPMENT_MODE' ||
-              result.error?.code === 'MISSING_PERMISSION'
-            ? 403
-            : result.error?.code === 'INVALID_TOKEN' ||
-                result.error?.code === 'TOKEN_EXPIRED' ||
-                result.error?.code === 'OAUTH_EXCEPTION'
-              ? 401
-              : 502;
+          : result.error?.code === 'AD_ACCOUNT_PAYMENT_REQUIRED'
+            ? 402
+            : result.error?.code === 'APP_IN_DEVELOPMENT_MODE' ||
+                result.error?.code === 'MISSING_PERMISSION'
+              ? 403
+              : result.error?.code === 'INVALID_TOKEN' ||
+                  result.error?.code === 'TOKEN_EXPIRED' ||
+                  result.error?.code === 'OAUTH_EXCEPTION'
+                ? 401
+                : 502;
       res.status(status).json(result);
       return;
     }

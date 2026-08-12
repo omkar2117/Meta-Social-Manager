@@ -103,6 +103,8 @@ export interface BoostCreateFailure {
     failed: Array<{ id: string; type: string; message: string }>;
   };
   adAccountId?: string;
+  /** Ads Manager billing deep-link when Meta reports missing payment method */
+  billingUrl?: string | null;
   error: {
     code: string;
     message: string;
