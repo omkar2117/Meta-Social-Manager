@@ -165,6 +165,7 @@ function App() {
         {data && (
           <Dashboard
             data={data}
+            accessToken={tokenRef.current}
             isRefreshing={status === 'connecting'}
             onRefresh={handleRefresh}
             onDisconnect={handleDisconnect}

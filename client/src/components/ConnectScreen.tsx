@@ -139,6 +139,13 @@ export function ConnectScreen({ onConnect, isConnecting, error }: ConnectScreenP
           >
             Meta Graph API Explorer
           </a>
+          {' · '}
+          <a
+            href="/privacy-policy.html"
+            className="text-violet-500 hover:text-violet-400 transition-colors"
+          >
+            Privacy Policy
+          </a>
         </p>
       </motion.div>
     </div>

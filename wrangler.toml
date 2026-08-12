@@ -1,0 +1,7 @@
+# Cloudflare Pages configuration for Meta Social Manager
+# Production deploy is via Cloudflare Pages Git integration (not `wrangler deploy` as a Worker).
+# Local preview: npm run pages:dev
+
+name = "meta-social-manager"
+compatibility_date = "2026-08-11"
+pages_build_output_dir = "client/dist"

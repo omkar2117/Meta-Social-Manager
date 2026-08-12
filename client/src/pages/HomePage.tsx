@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { useCallback } from 'react';
 
 export function HomePage() {
-  const { status, data, error, connect, refresh, disconnect } = useMetaConnect();
+  const { status, data, error, accessToken, connect, refresh, disconnect } = useMetaConnect();
 
   const handleConnect = useCallback(async (token: string) => {
     toast.loading('Connecting to Meta...', { id: 'connect' });
@@ -72,6 +72,7 @@ export function HomePage() {
     return (
       <Dashboard
         data={data}
+        accessToken={accessToken}
         isRefreshing={status === 'connecting'}
         onRefresh={handleRefresh}
         onDisconnect={handleDisconnect}

@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import metaRoutes from './routes/meta';
+import boostRoutes from './routes/boost';
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.get('/api/health', (_req, res) => {
 
 // ── API Routes ─────────────────────────────────────────
 app.use('/api/meta', metaRoutes);
+app.use('/api/boost', boostRoutes);
 
 // ── Static Asset Serving (Production Single-Server Mode) ──
 const clientDistPath = path.resolve(__dirname, '../../client/dist');

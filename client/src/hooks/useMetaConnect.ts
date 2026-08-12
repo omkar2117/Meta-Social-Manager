@@ -7,6 +7,7 @@ interface UseMetaConnectReturn {
   status: ConnectionStatus;
   data: DashboardData | null;
   error: string | null;
+  accessToken: string;
   connect: (accessToken: string) => Promise<void>;
   refresh: () => Promise<void>;
   disconnect: () => void;
@@ -16,20 +17,22 @@ export function useMetaConnect(): UseMetaConnectReturn {
   const [status, setStatus] = useState<ConnectionStatus>('idle');
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState('');
   const tokenRef = useRef<string>('');
 
-  const connect = useCallback(async (accessToken: string) => {
-    if (!accessToken.trim()) {
+  const connect = useCallback(async (token: string) => {
+    if (!token.trim()) {
       setError('Please enter a valid access token.');
       return;
     }
 
-    tokenRef.current = accessToken;
+    tokenRef.current = token;
+    setAccessToken(token);
     setStatus('connecting');
     setError(null);
 
     try {
-      const response = await connectMeta(accessToken);
+      const response = await connectMeta(token);
 
       if (response.success && response.data) {
         setData({
@@ -68,10 +71,11 @@ export function useMetaConnect(): UseMetaConnectReturn {
 
   const disconnect = useCallback(() => {
     tokenRef.current = '';
+    setAccessToken('');
     setData(null);
     setError(null);
     setStatus('idle');
   }, []);
 
-  return { status, data, error, connect, refresh, disconnect };
+  return { status, data, error, accessToken, connect, refresh, disconnect };
 }

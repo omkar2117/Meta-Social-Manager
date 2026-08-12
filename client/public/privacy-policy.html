@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Privacy Policy for Meta Social Manager — Instagram analytics and Boost Post tools powered by Meta Graph and Marketing APIs."
+    />
+    <meta name="robots" content="index,follow" />
+    <title>Privacy Policy · Meta Social Manager</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0a0a0f;
+        --card: rgba(255, 255, 255, 0.03);
+        --border: rgba(255, 255, 255, 0.08);
+        --text: #f4f4f5;
+        --muted: #a1a1aa;
+        --accent: #a78bfa;
+        --accent-2: #8b5cf6;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: Inter, system-ui, -apple-system, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.65;
+        min-height: 100vh;
+      }
+      .bg {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 0;
+      }
+      .bg span {
+        position: absolute;
+        width: 420px;
+        height: 420px;
+        border-radius: 50%;
+        filter: blur(140px);
+        opacity: 0.12;
+      }
+      .bg span:first-child {
+        top: -80px;
+        left: 15%;
+        background: #7c3aed;
+      }
+      .bg span:last-child {
+        bottom: -100px;
+        right: 10%;
+        background: #4f46e5;
+      }
+      header, main, footer {
+        position: relative;
+        z-index: 1;
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 0 1.25rem;
+      }
+      header {
+        padding-top: 2rem;
+        padding-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        text-decoration: none;
+        color: var(--text);
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+      .logo {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.55rem;
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        display: grid;
+        place-items: center;
+        font-size: 0.85rem;
+      }
+      .back {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.875rem;
+      }
+      .back:hover { color: var(--accent); }
+      .hero {
+        margin-bottom: 1.75rem;
+      }
+      .hero h1 {
+        font-size: clamp(1.75rem, 4vw, 2.25rem);
+        letter-spacing: -0.03em;
+        margin-bottom: 0.5rem;
+      }
+      .hero p {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        padding: 1.75rem 1.5rem;
+        backdrop-filter: blur(16px);
+      }
+      h2 {
+        font-size: 1.05rem;
+        margin: 1.75rem 0 0.65rem;
+        color: #fff;
+      }
+      h2:first-of-type { margin-top: 0; }
+      p, li {
+        color: var(--muted);
+        font-size: 0.925rem;
+        margin-bottom: 0.75rem;
+      }
+      ul {
+        padding-left: 1.2rem;
+        margin-bottom: 0.75rem;
+      }
+      li { margin-bottom: 0.4rem; }
+      a { color: var(--accent); }
+      a:hover { color: #c4b5fd; }
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.25rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.8rem;
+        color: #71717a;
+      }
+      footer {
+        padding: 2rem 1.25rem 3rem;
+        color: #71717a;
+        font-size: 0.8rem;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg" aria-hidden="true"><span></span><span></span></div>
+
+    <header>
+      <a class="brand" href="/">
+        <span class="logo" aria-hidden="true">📷</span>
+        Meta Social Manager
+      </a>
+      <a class="back" href="/">← Back to app</a>
+    </header>
+
+    <main>
+      <div class="hero">
+        <h1>Privacy Policy</h1>
+        <p>
+          This Privacy Policy describes how <strong style="color:#e4e4e7">Meta Social Manager</strong>
+          (“the App”, “we”, “us”) handles information when you use our Instagram analytics and
+          Boost Post proof-of-concept powered by Meta (Facebook) Graph and Marketing APIs.
+        </p>
+      </div>
+
+      <article class="card">
+        <h2>1. Who we are</h2>
+        <p>
+          Meta Social Manager is a developer / POC application associated with the Meta app
+          <strong style="color:#e4e4e7">break.the.scroll</strong>. It helps users connect an
+          Instagram Business or Creator account (via Meta access tokens), view profile and media
+          analytics, and optionally create Instagram Boost campaigns through the Meta Marketing API.
+        </p>
+
+        <h2>2. Information we process</h2>
+        <p>Depending on how you use the App, we may process:</p>
+        <ul>
+          <li>
+            <strong style="color:#e4e4e7">Meta access tokens</strong> you paste or authorize, used
+            only to call Meta APIs on your behalf.
+          </li>
+          <li>
+            <strong style="color:#e4e4e7">Instagram Business Account data</strong> returned by Meta,
+            such as profile details, follower counts, media captions, thumbnails, permalinks, and
+            available insights.
+          </li>
+          <li>
+            <strong style="color:#e4e4e7">Facebook Page and Ad Account metadata</strong> needed for
+            discovery and Boost flows (for example Page ID, Ad Account ID, currency, timezone, status).
+          </li>
+          <li>
+            <strong style="color:#e4e4e7">Boost configuration you submit</strong>, such as objective,
+            audience targeting inputs, budget, and schedule, which are sent to Meta to create Campaign,
+            Ad Set, Creative, and Ad objects.
+          </li>
+          <li>
+            Standard technical logs generated by our hosting provider (for example request timestamps
+            and error messages) for reliability and debugging.
+          </li>
+        </ul>
+
+        <h2>3. How we use information</h2>
+        <ul>
+          <li>To authenticate with Meta and retrieve your Instagram analytics dashboard data.</li>
+          <li>To create or manage Boost / Marketing API objects when you explicitly confirm creation.</li>
+          <li>To display results in the App UI and show Meta error messages when a request fails.</li>
+          <li>To improve reliability and diagnose API or deployment issues.</li>
+        </ul>
+        <p>We do not sell your personal data. We do not use your Meta data for unrelated advertising.</p>
+
+        <h2>4. How data is stored</h2>
+        <ul>
+          <li>
+            Access tokens are intended to be held in <strong style="color:#e4e4e7">browser memory</strong>
+            for the active session and forwarded to our API proxy only to call Meta. They are not designed
+            to be permanently stored in our database.
+          </li>
+          <li>
+            Dashboard media, profile, and insights data are loaded for display in your session and are
+            not intended to be retained as a long-term personal data archive by the App.
+          </li>
+          <li>
+            When you create a Boost, Meta stores the resulting Campaign / Ad Set / Creative / Ad objects
+            in <strong style="color:#e4e4e7">your Meta Ad Account</strong> under Meta’s own terms and
+            policies.
+          </li>
+        </ul>
+
+        <h2>5. Sharing with third parties</h2>
+        <p>
+          The App shares necessary credentials and parameters with <strong style="color:#e4e4e7">Meta Platforms</strong>
+          (Facebook / Instagram Graph API and Marketing API) to provide the requested features.
+          Hosting infrastructure (for example Cloudflare Pages / Pages Functions or equivalent) may
+          process request metadata as part of delivering the App. We do not share your Meta token or
+          Instagram content with unrelated third-party advertisers.
+        </p>
+
+        <h2>6. Meta Platform compliance</h2>
+        <p>
+          Use of Instagram and Marketing API data complies with Meta’s Platform Terms, Developer Policies,
+          and applicable Instagram / Marketing API terms. You are responsible for ensuring you have the
+          right to access the Meta assets (Pages, Instagram accounts, Ad Accounts) you connect.
+        </p>
+
+        <h2>7. Data retention</h2>
+        <p>
+          Session data is cleared when you disconnect or close the browser session. Boost objects created
+          in Meta remain in your Ad Account until you delete or archive them in Meta Ads Manager.
+          Server logs, if any, are retained only as long as needed for security and debugging.
+        </p>
+
+        <h2>8. Security</h2>
+        <p>
+          We use HTTPS in production and limit Marketing API write actions behind an explicit user
+          confirmation step. No method of transmission or storage is 100% secure; please protect your
+          access tokens and revoke them in Meta if you suspect misuse.
+        </p>
+
+        <h2>9. Your choices</h2>
+        <ul>
+          <li>Disconnect inside the App to clear the in-session token and dashboard data from the UI.</li>
+          <li>Revoke App access from your Meta / Facebook settings.</li>
+          <li>Delete Campaigns, Ad Sets, or Ads in Meta Ads Manager.</li>
+          <li>Stop using the App at any time.</li>
+        </ul>
+
+        <h2>10. Children’s privacy</h2>
+        <p>
+          The App is not directed to children under 13 (or the minimum age required in your jurisdiction)
+          and is intended for business / creator account operators.
+        </p>
+
+        <h2>11. International processing</h2>
+        <p>
+          Depending on where our hosting and Meta’s infrastructure operate, your information may be
+          processed in countries other than your own. Meta’s processing is governed by Meta’s privacy
+          policy and terms.
+        </p>
+
+        <h2>12. Changes to this policy</h2>
+        <p>
+          We may update this Privacy Policy as the POC evolves. The “Last updated” date below will change
+          when material revisions are published at this URL.
+        </p>
+
+        <h2>13. Contact</h2>
+        <p>
+          For privacy questions about this App, contact the operator of the Meta app
+          <strong style="color:#e4e4e7">break.the.scroll</strong> through the contact details listed in
+          the Meta App Dashboard, or via the project repository maintainer for
+          <a href="https://github.com/omkar2117/Meta-Social-Manager">Meta Social Manager</a>.
+        </p>
+
+        <div class="meta">
+          <span>Last updated: August 12, 2026</span>
+          <span>Product: Meta Social Manager (POC)</span>
+          <span>Meta App: break.the.scroll</span>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      © <span id="y"></span> Meta Social Manager · Public Privacy Policy · No login required
+    </footer>
+    <script>
+      document.getElementById('y').textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>

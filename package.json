@@ -8,10 +8,11 @@
     "build:client": "cd client && npm run build",
     "build:server": "cd server && npm run build",
     "build": "npm run build:client && npm run build:server",
+    "build:pages": "cd client && npm install && npm run build",
     "start": "node server/dist/index.js",
     "postinstall": "npm run install:all",
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
-    "pages:dev": "npx wrangler pages dev client/dist --port 3001"
+    "pages:dev": "npx wrangler pages dev client/dist --port 3001 --compatibility-date=2026-08-11"
   }
 }

@@ -1,128 +1,115 @@
 # Meta Social Manager
 
-> Production-ready Instagram Analytics Dashboard built using Meta Graph API, React, TypeScript, Express, and TailwindCSS.
+> Instagram analytics + Boost Post POC using Meta Graph / Marketing APIs, React, TypeScript, Vite, Cloudflare Pages Functions, and Express (local only).
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)
-![React](https://img.shields.io/badge/Frontend-React_18-blue.svg)
+![React](https://img.shields.io/badge/Frontend-React-blue.svg)
 ![TypeScript](https://img.shields.io/badge/Language-TypeScript-blue.svg)
-![TailwindCSS](https://img.shields.io/badge/Styling-TailwindCSS-38bdf8.svg)
-![Express](https://img.shields.io/badge/Backend-Express.js-green.svg)
+![Cloudflare Pages](https://img.shields.io/badge/Production-Cloudflare_Pages-orange.svg)
 
 ---
 
-## 🚀 Overview
+## Overview
 
-**Meta Social Manager** is a SaaS-grade Instagram Analytics Dashboard similar to Metricool, Hootsuite, and Meta Business Suite. It enables users to connect an Instagram Business or Creator account using a single Meta Graph API Access Token and automatically analyzes profile stats, media performance, reach trends, format breakdowns, and AI-driven recommendations.
+**Meta Social Manager** connects an Instagram Business/Creator account via a Meta access token, shows profile/media/insights, and includes a Boost Post flow (Create Boost stays locked until the Meta app is Live and a Privacy Policy URL is configured).
 
----
+**Production:** one Cloudflare Pages URL serves the React app + Pages Functions (`/api/*`) + `/privacy-policy.html`.
 
-## ✨ Features
-
-- 🔑 **Automatic Page & Account Discovery**: Paste a single token -> auto-discovers connected Facebook Pages and Instagram Business Accounts.
-- 👤 **Profile Card**: Displays profile picture, handle, bio, follower/following/post counts, account ID, page ID, and connection timestamp.
-- 📊 **14 Live & Computed Stat Cards**: Real-time stats for Followers, Following, Posts, Reach, Total Likes, Total Comments, Total Engagement, Shares, Saves, Images, Videos, Carousels, Reels, Engagement Rate %, and Posts/Month.
-- 🏆 **Top Performing Content Highlight**: Automatically detects and displays your Most Liked, Most Commented, Top Engaged, and Latest posts with direct Instagram links.
-- 🖼️ **Interactive Media Grid**: Search captions, filter by format (Image, Video, Carousel, Reel), filter by date range (7d, 30d, 90d, All), and sort by likes/comments/newest.
-- 📈 **Visual Analytics**: Interactive Recharts for Reach trends, Follower growth, Engagement trends, Likes/Comments per post, and Media Distribution Pie Chart.
-- 💡 **AI Smart Recommendations Engine**: Rule-based engine analyzing engagement rate, format mix, posting cadence, and short-form video optimization.
-- 📥 **One-Click CSV Export**: Download complete reports containing profile metadata, calculated metrics, and post details.
-- 🔒 **Privacy First**: Zero access tokens stored on the server; all tokens held transiently in client memory.
+**Local:** Express (`server/`) and/or Vite remain available for development.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Framer Motion, Recharts, Lucide React, Sonner
-- **Backend**: Node.js, Express, Axios, CORS, dotenv
-- **API**: Meta Graph API (v21.0+)
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS, Framer Motion, Recharts, Lucide, Sonner
+- **Production API**: Cloudflare Pages Functions (`functions/`)
+- **Local API**: Express (`server/`) — development only
+- **Meta**: Graph API v21.0+ (read) · Marketing API v25.0 (Boost)
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```text
 Meta-Social-Manager/
-├── client/                   # Frontend React + Vite app
-│   ├── src/
-│   │   ├── components/       # UI Components (ProfileCard, StatsGrid, MediaGrid, etc.)
-│   │   ├── constants/        # API endpoints and chart color configurations
-│   │   ├── hooks/            # Custom hooks (useAnimatedCounter, etc.)
-│   │   ├── services/         # Axios API service calls
-│   │   ├── types/            # TypeScript interfaces
-│   │   └── utils/            # Analytics calculators & CSV exporter
-│   ├── package.json
-│   └── vite.config.ts
-├── server/                   # Backend Express proxy
-│   ├── src/
-│   │   ├── routes/           # Meta API proxy endpoints (/api/meta/*)
-│   │   ├── utils/            # Meta Graph API Axios helper
-│   │   └── index.ts          # Express server entry point & static server
-│   └── package.json
-├── .env.example              # Sample environment variables
-├── package.json              # Monorepo build scripts
-├── render.yaml               # Render.com cloud deployment config
-├── vercel.json               # Vercel cloud deployment config
+├── client/                      # React + Vite
+│   ├── public/privacy-policy.html
+│   └── src/
+├── functions/                   # Cloudflare Pages Functions (/api/*)
+│   ├── api/[[path]].ts
+│   └── _shared/
+├── server/                      # Express (local only)
+├── wrangler.toml                # Pages output dir + compatibility_date
+├── .env.example
+├── package.json
 └── README.md
 ```
 
 ---
 
-## ⚡ Quick Start & Running Locally
+## Cloudflare Pages (production — single URL)
 
-### Prerequisites
-- Node.js >= 18.x
-- npm >= 9.x
-- A valid Meta Graph Access Token with `instagram_basic`, `instagram_manage_insights`, and `pages_read_engagement` permissions.
+GitHub: `https://github.com/omkar2117/Meta-Social-Manager.git`
 
-### Setup Instructions
+Recommended dashboard settings (keep **repository root**, do not set root to `client/` or Functions will not deploy):
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/omkar2117/Meta-Social-Manager.git
-   cd Meta-Social-Manager
-   ```
+| Setting | Value |
+|--------|--------|
+| Production branch | `main` |
+| Root directory | `/` (empty / repo root) |
+| Build command | `npm run build:pages` |
+| Build output directory | `client/dist` |
 
-2. **Install dependencies**:
-   ```bash
-   npm run install:all
-   ```
+**Do not set `VITE_API_BASE_URL` in Cloudflare.** Production builds force same-origin `/api/*`.
 
-3. **Configure Environment Variables**:
-   Copy `.env.example` to `.env` in both `client/` and `server/` directories:
-   ```bash
-   cp .env.example server/.env
-   ```
+Recommended Production env vars (Create Boost stays locked):
 
-4. **Build production assets**:
-   ```bash
-   npm run build
-   ```
+| Variable | Value |
+|----------|--------|
+| `META_APP_MODE` | `development` |
+| `META_PRIVACY_POLICY_CONFIGURED` | `false` |
 
-5. **Start development servers**:
-   ```bash
-   npm run dev
-   ```
-   Open `http://localhost:5174` (or `http://localhost:5173`) in your browser.
+Same-origin paths after deploy:
+
+- `/`
+- `/privacy-policy.html`
+- `/api/health`
+- `/api/meta/*`
+- `/api/boost/*`
 
 ---
 
-## 📡 API Documentation
+## Local development
 
-### Backend Endpoints (`http://localhost:3001`)
+```bash
+git clone https://github.com/omkar2117/Meta-Social-Manager.git
+cd Meta-Social-Manager
+npm run install:all
+cp .env.example server/.env
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/health` | Health check endpoint returning server status |
-| `POST` | `/api/meta/validate` | Validates access token and returns user details |
-| `POST` | `/api/meta/pages` | Fetches connected Facebook Pages |
-| `POST` | `/api/meta/instagram-account` | Auto-discovers linked Instagram Business Account |
-| `POST` | `/api/meta/instagram-profile` | Retrieves Instagram profile data |
-| `POST` | `/api/meta/instagram-media` | Retrieves recent feed media items (limit: 30) |
-| `POST` | `/api/meta/instagram-insights` | Queries supported Meta insight metrics |
-| `POST` | `/api/meta/connect` | Full single-request connection flow pipeline |
+# Express + Vite (set VITE_API_BASE_URL=http://localhost:3001 for Vite)
+npm run dev:server
+npm run dev:client
+
+# Or production-like same-origin preview
+npm run build:pages
+npm run pages:dev
+# open http://localhost:3001
+```
 
 ---
 
-## 📄 License
+## API (same-origin in production)
 
-Distributed under the MIT License. See [`LICENSE`](./LICENSE) for details.
+| Method | Endpoint | Notes |
+|--------|----------|--------|
+| GET | `/api/health` | Health |
+| POST | `/api/meta/connect` | Token → Page → IG → media/insights |
+| GET | `/api/boost/readiness` | Pre-Live Create Boost gate |
+| POST | `/api/boost/create` | Locked unless Live + Privacy configured |
+
+---
+
+## License
+
+MIT — see [`LICENSE`](./LICENSE).

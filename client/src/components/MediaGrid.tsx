@@ -6,12 +6,13 @@ import type { InstagramMedia } from '../types/instagram';
 
 interface MediaGridProps {
   media: InstagramMedia[];
+  onBoost?: (media: InstagramMedia) => void;
 }
 
 type DateFilter = 'all' | '7d' | '30d' | '90d';
 type TypeFilter = 'all' | 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM' | 'REELS';
 
-export function MediaGrid({ media }: MediaGridProps) {
+export function MediaGrid({ media, onBoost }: MediaGridProps) {
   const [search, setSearch] = useState('');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
@@ -136,7 +137,7 @@ export function MediaGrid({ media }: MediaGridProps) {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {displayMedia.map((item, i) => (
-              <MediaCard key={item.id} media={item} index={i} />
+              <MediaCard key={item.id} media={item} index={i} onBoost={onBoost} />
             ))}
           </div>
 

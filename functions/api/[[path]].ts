@@ -1,3 +1,18 @@
+import {
+  BOOST_OBJECTIVES,
+  checkBoostEligibility,
+  createBoost,
+  fetchAdAccountMinimumBudget,
+  fetchAdAccounts,
+  getObjectiveConfig,
+  parseBoostMetaError,
+  parseCreateBody,
+  searchAdInterests,
+  searchAdLocations,
+  validateBoostInput,
+} from '../_shared/boost';
+import { getBoostReadiness } from '../_shared/boostReadiness';
+
 const GRAPH_API_BASE = 'https://graph.facebook.com/v21.0';
 
 // Helper to make queries to Meta Graph API
@@ -169,7 +184,7 @@ async function fetchInstagramInsights(igUserId: string, accessToken: string) {
 
 // Router handler matching express endpoints
 export const onRequest: PagesFunction = async (context) => {
-  const { request } = context;
+  const { request, env } = context;
   const url = new URL(request.url);
   const path = url.pathname;
 
@@ -193,6 +208,28 @@ export const onRequest: PagesFunction = async (context) => {
         environment: 'production',
         timestamp: new Date().toISOString()
       }), { headers });
+    }
+
+    // GET /api/boost/objectives
+    if (path === '/api/boost/objectives' && request.method === 'GET') {
+      return new Response(JSON.stringify({
+        success: true,
+        objectives: BOOST_OBJECTIVES.map((o) => ({
+          key: o.key,
+          label: o.label,
+          description: o.description,
+          requiresWebsiteUrl: o.requiresWebsiteUrl,
+          campaignObjective: o.campaignObjective,
+          optimizationGoal: o.optimizationGoal,
+          destinationType: o.destinationType,
+        })),
+      }), { headers });
+    }
+
+    // GET /api/boost/readiness — config only, no Meta create calls
+    if (path === '/api/boost/readiness' && request.method === 'GET') {
+      const readiness = getBoostReadiness(env as Record<string, unknown>);
+      return new Response(JSON.stringify({ success: true, readiness }), { headers });
     }
 
     // POST calls only for endpoints below
@@ -308,6 +345,174 @@ export const onRequest: PagesFunction = async (context) => {
           insights: insightsResponse.data,
         },
       }), { headers });
+    }
+
+    // ── Boost / Marketing API (v25) ─────────────────────
+    if (path.startsWith('/api/boost/')) {
+      try {
+        if (path === '/api/boost/ad-accounts') {
+          const { accessToken } = body;
+          if (!accessToken) {
+            return new Response(JSON.stringify({ code: 'MISSING_TOKEN', message: 'Access token is required.' }), { headers, status: 400 });
+          }
+          const accounts = await fetchAdAccounts(accessToken);
+          return new Response(JSON.stringify({
+            success: true,
+            accounts,
+            message: accounts.length === 0
+              ? 'No ad accounts found for this token. Empty list is not an API error.'
+              : undefined,
+          }), { headers });
+        }
+
+        if (path === '/api/boost/minimum-budget') {
+          const { accessToken, adAccountId } = body;
+          if (!accessToken || !adAccountId) {
+            return new Response(JSON.stringify({ code: 'MISSING_PARAMS', message: 'accessToken and adAccountId are required.' }), { headers, status: 400 });
+          }
+          const result = await fetchAdAccountMinimumBudget(adAccountId, accessToken);
+          return new Response(JSON.stringify({ success: true, ...result }), { headers });
+        }
+
+        if (path === '/api/boost/eligibility') {
+          const { accessToken, mediaId } = body;
+          if (!accessToken || !mediaId) {
+            return new Response(JSON.stringify({ code: 'MISSING_PARAMS', message: 'accessToken and mediaId are required.' }), { headers, status: 400 });
+          }
+          const eligibility = await checkBoostEligibility(mediaId, accessToken);
+          return new Response(JSON.stringify({ success: true, eligibility }), { headers });
+        }
+
+        if (path === '/api/boost/search-interests') {
+          const { accessToken, query } = body;
+          if (!accessToken) {
+            return new Response(JSON.stringify({ code: 'MISSING_TOKEN', message: 'Access token is required.' }), { headers, status: 400 });
+          }
+          const interests = await searchAdInterests(String(query || ''), accessToken);
+          return new Response(JSON.stringify({ success: true, interests }), { headers });
+        }
+
+        if (path === '/api/boost/search-locations') {
+          const { accessToken, query } = body;
+          if (!accessToken) {
+            return new Response(JSON.stringify({ code: 'MISSING_TOKEN', message: 'Access token is required.' }), { headers, status: 400 });
+          }
+          const locations = await searchAdLocations(String(query || ''), accessToken);
+          return new Response(JSON.stringify({ success: true, locations }), { headers });
+        }
+
+        if (path === '/api/boost/review') {
+          const { accessToken } = body;
+          if (!accessToken) {
+            return new Response(JSON.stringify({ code: 'MISSING_TOKEN', message: 'Access token is required.' }), { headers, status: 400 });
+          }
+          const input = parseCreateBody(body);
+          const objective = getObjectiveConfig(input.objective);
+          if (!objective) {
+            return new Response(JSON.stringify({ code: 'INVALID_OBJECTIVE', message: 'Unsupported boost objective.' }), { headers, status: 400 });
+          }
+          const minInfo = await fetchAdAccountMinimumBudget(input.adAccountId, accessToken);
+          const validationErrors = validateBoostInput(input, minInfo.currency, minInfo.minDailyBudgetMinor);
+          if (validationErrors.length) {
+            return new Response(JSON.stringify({
+              code: 'VALIDATION_ERROR',
+              message: validationErrors[0],
+              details: validationErrors.join(' | '),
+            }), { headers, status: 400 });
+          }
+          const eligibility = await checkBoostEligibility(input.mediaId, accessToken);
+          if (!eligibility.eligible) {
+            return new Response(JSON.stringify({
+              code: 'MEDIA_NOT_ELIGIBLE',
+              message: eligibility.reason || 'Post is not eligible for promotion.',
+              eligibility,
+            }), { headers, status: 400 });
+          }
+          const start = new Date(input.startDate);
+          const end = new Date(input.endDate);
+          const durationDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)));
+          return new Response(JSON.stringify({
+            success: true,
+            review: {
+              objective: {
+                key: objective.key,
+                label: objective.label,
+                campaignObjective: objective.campaignObjective,
+                optimizationGoal: objective.optimizationGoal,
+                destinationType: objective.destinationType,
+              },
+              audienceMode: input.audienceMode,
+              locationCountries: input.locationCountries,
+              ageMin: input.ageMin,
+              ageMax: input.ageMax,
+              genders: input.genders,
+              interests: input.interestIds,
+              dailyBudget: input.dailyBudgetMajor,
+              currency: minInfo.currency,
+              minDailyBudgetMinor: minInfo.minDailyBudgetMinor,
+              startDate: input.startDate,
+              endDate: input.endDate,
+              durationDays,
+              estimatedSpendMajor: input.dailyBudgetMajor * durationDays,
+              estimatedSpendNote: 'Estimated total = daily budget × duration days. Not a Meta delivery estimate.',
+              adAccountId: input.adAccountId,
+              mediaId: input.mediaId,
+              websiteUrl: input.websiteUrl,
+              creationStatus: input.status || 'PAUSED',
+              eligibility,
+            },
+          }), { headers });
+        }
+
+        if (path === '/api/boost/create') {
+          const { accessToken } = body;
+          if (!accessToken) {
+            return new Response(JSON.stringify({ code: 'MISSING_TOKEN', message: 'Access token is required.' }), { headers, status: 400 });
+          }
+
+          const readiness = getBoostReadiness(env as Record<string, unknown>);
+          if (!readiness.boostCreationEnabled) {
+            return new Response(JSON.stringify({
+              success: false,
+              code: 'BOOST_CREATION_LOCKED',
+              message:
+                readiness.warningMessage ||
+                'Boost creation is locked until the Meta app is Live/Public and the Privacy Policy URL is configured.',
+              readiness,
+            }), { headers, status: 403 });
+          }
+
+          if (body.confirmCreate !== true) {
+            return new Response(JSON.stringify({
+              code: 'CONFIRMATION_REQUIRED',
+              message: 'Set confirmCreate=true after reviewing the boost. This prevents accidental campaign creation.',
+            }), { headers, status: 400 });
+          }
+          const input = parseCreateBody(body);
+          const result = await createBoost(input);
+          if (!result.success) {
+            const status =
+              result.error?.code === 'VALIDATION_ERROR' ||
+              result.error?.code === 'MEDIA_NOT_ELIGIBLE' ||
+              result.error?.code === 'INVALID_OBJECTIVE' ||
+              result.error?.code === 'AD_ACCOUNT_NOT_ELIGIBLE'
+                ? 400
+                : result.error?.code === 'APP_IN_DEVELOPMENT_MODE' ||
+                    result.error?.code === 'MISSING_PERMISSION'
+                  ? 403
+                  : result.error?.code === 'INVALID_TOKEN' ||
+                      result.error?.code === 'TOKEN_EXPIRED' ||
+                      result.error?.code === 'OAUTH_EXCEPTION'
+                    ? 401
+                    : 502;
+            return new Response(JSON.stringify({ success: false, ...result }), { headers, status });
+          }
+          return new Response(JSON.stringify(result), { headers });
+        }
+      } catch (boostError: any) {
+        const appError = parseBoostMetaError(boostError);
+        return new Response(JSON.stringify(appError), { headers, status: appError.status });
+      }
     }
 
     return new Response(JSON.stringify({ code: 'NOT_FOUND', message: 'Endpoint not found.' }), { headers, status: 404 });
