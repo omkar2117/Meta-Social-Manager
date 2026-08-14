@@ -135,9 +135,13 @@ router.post('/connect', async (req: Request, res: Response) => {
 
     for (const page of pagesResponse.data) {
       const accountResponse = await fetchInstagramAccount(page.id, accessToken);
-      if (accountResponse.instagram_business_account) {
+      if (accountResponse?.id && accountResponse?.instagram_business_account?.id) {
         igUserId = accountResponse.instagram_business_account.id;
-        connectedPage = page;
+        connectedPage = {
+          ...page,
+          id: accountResponse.id,
+          name: accountResponse.name || page.name,
+        };
         break;
       }
     }

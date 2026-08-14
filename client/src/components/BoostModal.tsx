@@ -725,7 +725,7 @@ export function BoostModal({
                     <select
                       value={form.adAccountId}
                       onChange={(e) => setForm((f) => ({ ...f, adAccountId: e.target.value }))}
-                      className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white"
+                      className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white cursor-default caret-transparent outline-none focus:outline-none focus:ring-0"
                     >
                       {accounts.map((acc) => (
                         <option key={acc.id} value={acc.id} className="bg-[#12121a]" disabled={!acc.eligible}>
@@ -737,9 +737,13 @@ export function BoostModal({
                     </select>
                   )}
                   {selectedAccount && (
-                    <p className="text-[11px] text-gray-500">
-                      Status: {selectedAccount.account_status_label} · Currency:{' '}
-                      {selectedAccount.currency} · Timezone: {selectedAccount.timezone_name}
+                    <p className="text-[11px] text-gray-400">
+                      Selected: {selectedAccount.name} · {selectedAccount.id}
+                      <span className="text-gray-500">
+                        {' '}
+                        · Status: {selectedAccount.account_status_label} · Currency:{' '}
+                        {selectedAccount.currency} · Timezone: {selectedAccount.timezone_name}
+                      </span>
                     </p>
                   )}
 

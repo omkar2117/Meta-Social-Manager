@@ -13,6 +13,7 @@ import {
   validateBoostInput,
 } from '../_shared/boost';
 import { getBoostReadiness } from '../_shared/boostReadiness';
+import { discoverFacebookPages, type GraphGetFn } from '../_shared/pageDiscovery';
 
 const GRAPH_API_BASE = 'https://graph.facebook.com/v21.0';
 
@@ -104,13 +105,26 @@ async function validateToken(accessToken: string) {
   return metaFetch(`${GRAPH_API_BASE}/me`, { access_token: accessToken });
 }
 
+function createGraphGet(accessToken: string): GraphGetFn {
+  return (path, query = {}) =>
+    metaFetch(`${GRAPH_API_BASE}${path}`, { ...query, access_token: accessToken });
+}
+
 async function fetchPages(accessToken: string) {
-  return metaFetch(`${GRAPH_API_BASE}/me/accounts`, { access_token: accessToken });
+  const discovered = await discoverFacebookPages(createGraphGet(accessToken));
+  return {
+    data: discovered.map((page) => ({
+      id: page.id,
+      name: page.name,
+      access_token: page.access_token,
+      category: page.category,
+    })),
+  };
 }
 
 async function fetchInstagramAccount(pageId: string, accessToken: string) {
   return metaFetch(`${GRAPH_API_BASE}/${pageId}`, {
-    fields: 'instagram_business_account',
+    fields: 'id,name,instagram_business_account',
     access_token: accessToken,
   });
 }
@@ -319,9 +333,13 @@ export const onRequest: PagesFunction = async (context) => {
 
       for (const page of pagesResponse.data) {
         const accountResponse = await fetchInstagramAccount(page.id, accessToken);
-        if (accountResponse.instagram_business_account) {
+        if (accountResponse?.id && accountResponse?.instagram_business_account?.id) {
           igUserId = accountResponse.instagram_business_account.id;
-          connectedPage = page;
+          connectedPage = {
+            ...page,
+            id: accountResponse.id,
+            name: accountResponse.name || page.name,
+          };
           break;
         }
       }

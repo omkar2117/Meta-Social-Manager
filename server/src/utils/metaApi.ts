@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { discoverFacebookPages, type GraphGetFn } from './pageDiscovery';
 
 const GRAPH_API_BASE = 'https://graph.facebook.com/v21.0';
 
@@ -12,8 +13,8 @@ export interface MetaUser {
 export interface FacebookPage {
   id: string;
   name: string;
-  access_token: string;
-  category: string;
+  access_token?: string;
+  category?: string;
   tasks?: string[];
 }
 
@@ -30,6 +31,7 @@ export interface InstagramAccountResponse {
     id: string;
   };
   id: string;
+  name?: string;
 }
 
 export interface InstagramProfile {
@@ -96,11 +98,25 @@ export async function validateToken(accessToken: string): Promise<MetaUser> {
   return data;
 }
 
+function createGraphGet(accessToken: string): GraphGetFn {
+  return async (path, query = {}) => {
+    const { data } = await axios.get(`${GRAPH_API_BASE}${path}`, {
+      params: { ...query, access_token: accessToken },
+    });
+    return data;
+  };
+}
+
 export async function fetchPages(accessToken: string): Promise<PagesResponse> {
-  const { data } = await axios.get<PagesResponse>(`${GRAPH_API_BASE}/me/accounts`, {
-    params: { access_token: accessToken },
-  });
-  return data;
+  const discovered = await discoverFacebookPages(createGraphGet(accessToken));
+  return {
+    data: discovered.map((page) => ({
+      id: page.id,
+      name: page.name,
+      access_token: page.access_token,
+      category: page.category,
+    })),
+  };
 }
 
 export async function fetchInstagramAccount(
@@ -109,7 +125,7 @@ export async function fetchInstagramAccount(
 ): Promise<InstagramAccountResponse> {
   const { data } = await axios.get<InstagramAccountResponse>(`${GRAPH_API_BASE}/${pageId}`, {
     params: {
-      fields: 'instagram_business_account',
+      fields: 'id,name,instagram_business_account',
       access_token: accessToken,
     },
   });
