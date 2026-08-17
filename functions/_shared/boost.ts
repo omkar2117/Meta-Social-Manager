@@ -484,19 +484,25 @@ export function buildBoostTargetingForTest(input: BoostCreateInput) {
   return buildTargeting(input);
 }
 
-/** Ad Set destination + promoted_object. Does not call Meta. */
+/** Ad Set promoted_object — Meta allows page_id only (not instagram_user_id). */
 export function buildBoostPromotedObject(
   input: Pick<BoostCreateInput, 'pageId' | 'igUserId'>,
-  objective: BoostObjectiveConfig
+  _objective: BoostObjectiveConfig
 ): Record<string, string> {
-  const promoted: Record<string, string> = { page_id: input.pageId };
-  if (
-    objective.destinationType === 'INSTAGRAM_PROFILE' ||
-    objective.destinationType === 'INSTAGRAM_DIRECT'
-  ) {
-    if (input.igUserId) promoted.instagram_user_id = input.igUserId;
-  }
-  return promoted;
+  return { page_id: input.pageId };
+}
+
+/** Ad Set destination fields that would be sent to Meta. Does not call Meta. */
+export function buildBoostAdSetPayloadForTest(
+  input: BoostCreateInput,
+  objective: BoostObjectiveConfig
+): Record<string, unknown> {
+  return {
+    destination_type: objective.destinationType,
+    optimization_goal: objective.optimizationGoal,
+    billing_event: objective.billingEvent,
+    promoted_object: buildBoostPromotedObject(input, objective),
+  };
 }
 
 function buildCreativePayload(input: BoostCreateInput, objective: BoostObjectiveConfig) {

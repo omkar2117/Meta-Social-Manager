@@ -164,8 +164,10 @@ console.log('Boost objective / websiteUrl tests (local only — no Meta create)\
   const profilePromo = buildBoostPromotedObject(baseInput({ objective: 'profile_visits' }), profileObj);
   const webPromo = buildBoostPromotedObject(baseInput({ objective: 'website_visits' }), webObj);
   assert(
-    profileObj.destinationType === 'INSTAGRAM_PROFILE' && !('website_url' in profilePromo),
-    '6h. Profile Ad Set is not a WEBSITE destination'
+    profileObj.destinationType === 'INSTAGRAM_PROFILE' &&
+      !('website_url' in profilePromo) &&
+      !('instagram_user_id' in profilePromo),
+    '6h. Profile Ad Set is INSTAGRAM_PROFILE with page_id only (no instagram_user_id in promoted_object)'
   );
   assert(
     webObj.destinationType === 'WEBSITE' && webPromo.page_id,
