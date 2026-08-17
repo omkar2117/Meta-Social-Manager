@@ -311,6 +311,35 @@ async function marketingDelete(
   return data;
 }
 
+/** Optional transport so local tests can prove validation runs before any Meta POST. */
+export interface BoostMetaTransport {
+  get: (
+    path: string,
+    accessToken: string,
+    params?: Record<string, string | number | undefined>
+  ) => Promise<any>;
+  post: (path: string, accessToken: string, body: Record<string, unknown>) => Promise<any>;
+  delete: (objectId: string, accessToken: string) => Promise<any>;
+}
+
+function defaultBoostTransport(): BoostMetaTransport {
+  return { get: marketingGet, post: marketingPost, delete: marketingDelete };
+}
+
+/** Paths in a payload that look like a website destination/link. */
+export function collectWebsiteLinkPaths(value: unknown, path = ''): string[] {
+  if (!value || typeof value !== 'object') return [];
+  const hits: string[] = [];
+  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    const next = path ? `${path}.${key}` : key;
+    if (key === 'websiteUrl' || key === 'website_url') hits.push(next);
+    if (key === 'type' && nested === 'LEARN_MORE') hits.push(next);
+    if (key === 'link' && typeof nested === 'string' && /^https?:\/\//i.test(nested)) hits.push(next);
+    if (nested && typeof nested === 'object') hits.push(...collectWebsiteLinkPaths(nested, next));
+  }
+  return hits;
+}
+
 export function isAppDevelopmentModeError(meta: {
   code?: number;
   error_subcode?: number;
@@ -719,9 +748,10 @@ function buildCreativePayload(input: BoostCreateInput, objective: BoostObjective
       type: 'LEARN_MORE',
       value: { link: websiteUrl },
     };
-  }
-
-  if (objective.key === 'messages') {
+  } else if (objective.key === 'profile_visits') {
+    // Meta Ad attach requires a profile destination CTA — not a website URL.
+    creative.call_to_action = { type: 'VIEW_INSTAGRAM_PROFILE' };
+  } else if (objective.key === 'messages') {
     creative.call_to_action = {
       type: 'MESSAGE_PAGE',
       value: { app_destination: 'INSTAGRAM_DIRECT' },
@@ -806,7 +836,10 @@ export function validateBoostInput(input: BoostCreateInput, currency: string, mi
   return errors;
 }
 
-export async function createBoost(input: BoostCreateInput): Promise<BoostCreateResult> {
+export async function createBoost(
+  input: BoostCreateInput,
+  transport: BoostMetaTransport = defaultBoostTransport()
+): Promise<BoostCreateResult> {
   const objective = getObjectiveConfig(input.objective);
   if (!objective) {
     return {
@@ -831,7 +864,7 @@ export async function createBoost(input: BoostCreateInput): Promise<BoostCreateR
     ? input.adAccountId
     : `act_${input.adAccountId}`;
 
-  const account = await marketingGet<{ currency?: string; account_status?: number; name?: string }>(
+  const account = await transport.get(
     `/${actId}`,
     input.accessToken,
     { fields: 'currency,account_status,name,min_daily_budget' }
@@ -884,7 +917,7 @@ export async function createBoost(input: BoostCreateInput): Promise<BoostCreateR
   try {
     // 1) Campaign
     failedStep = 'campaign';
-    const campaign = await marketingPost<{ id: string }>(`/${actId}/campaigns`, input.accessToken, {
+    const campaign = await transport.post(`/${actId}/campaigns`, input.accessToken, {
       name: `IG Boost — ${objective.label} — ${new Date().toISOString().slice(0, 10)}`,
       objective: objective.campaignObjective,
       status,
@@ -911,14 +944,14 @@ export async function createBoost(input: BoostCreateInput): Promise<BoostCreateR
       status,
     };
 
-    const adSet = await marketingPost<{ id: string }>(`/${actId}/adsets`, input.accessToken, adSetBody);
+    const adSet = await transport.post(`/${actId}/adsets`, input.accessToken, adSetBody);
     partial.adSetId = adSet.id;
 
     // 3) Creative — THIS is the call that rejects Development Mode apps (Meta subcode 1885183)
     // POST /act_{AD_ACCOUNT_ID}/adcreatives with source_instagram_media_id
     failedStep = 'creative';
     const creativePayload = buildCreativePayload(input, objective);
-    const creative = await marketingPost<{ id: string }>(
+    const creative = await transport.post(
       `/${actId}/adcreatives`,
       input.accessToken,
       creativePayload
@@ -927,7 +960,7 @@ export async function createBoost(input: BoostCreateInput): Promise<BoostCreateR
 
     // 4) Ad
     failedStep = 'ad';
-    const ad = await marketingPost<{ id: string }>(`/${actId}/ads`, input.accessToken, {
+    const ad = await transport.post(`/${actId}/ads`, input.accessToken, {
       name: `IG Boost Ad — ${input.mediaId}`,
       adset_id: adSet.id,
       creative: { creative_id: creative.id },

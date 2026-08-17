@@ -209,6 +209,29 @@ async function marketingDelete(objectId: string, accessToken: string) {
   return data;
 }
 
+export interface BoostMetaTransport {
+  get: (path: string, accessToken: string, params?: Record<string, any>) => Promise<any>;
+  post: (path: string, accessToken: string, body: Record<string, unknown>) => Promise<any>;
+  delete: (objectId: string, accessToken: string) => Promise<any>;
+}
+
+function defaultBoostTransport(): BoostMetaTransport {
+  return { get: marketingGet, post: marketingPost, delete: marketingDelete };
+}
+
+export function collectWebsiteLinkPaths(value: unknown, path = ''): string[] {
+  if (!value || typeof value !== 'object') return [];
+  const hits: string[] = [];
+  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    const next = path ? `${path}.${key}` : key;
+    if (key === 'websiteUrl' || key === 'website_url') hits.push(next);
+    if (key === 'type' && nested === 'LEARN_MORE') hits.push(next);
+    if (key === 'link' && typeof nested === 'string' && /^https?:\/\//i.test(nested)) hits.push(next);
+    if (nested && typeof nested === 'object') hits.push(...collectWebsiteLinkPaths(nested, next));
+  }
+  return hits;
+}
+
 /** Exact UI copy for Meta App Development Mode creative rejection (subcode 1885183). */
 export const APP_DEVELOPMENT_MODE_MESSAGE =
   'Your Meta app is currently in Development Mode. Switch the Meta app to Live/Public mode before creating a real Boost ad.';
@@ -518,8 +541,10 @@ function buildCreativePayload(input: BoostCreateInput, objective: BoostObjective
       throw new Error('A website URL is required for the Website Visits objective.');
     }
     creative.call_to_action = { type: 'LEARN_MORE', value: { link: websiteUrl } };
-  }
-  if (objective.key === 'messages') {
+  } else if (objective.key === 'profile_visits') {
+    // Meta Ad attach requires a profile destination CTA — not a website URL.
+    creative.call_to_action = { type: 'VIEW_INSTAGRAM_PROFILE' };
+  } else if (objective.key === 'messages') {
     creative.call_to_action = { type: 'MESSAGE_PAGE', value: { app_destination: 'INSTAGRAM_DIRECT' } };
   }
   return creative;
@@ -571,7 +596,7 @@ export function validateBoostInput(input: BoostCreateInput, currency: string, mi
   return errors;
 }
 
-export async function createBoost(input: BoostCreateInput) {
+export async function createBoost(input: BoostCreateInput, transport: BoostMetaTransport = defaultBoostTransport()) {
   const objective = getObjectiveConfig(input.objective);
   if (!objective) {
     return { success: false, error: { code: 'INVALID_OBJECTIVE', message: 'Unsupported boost objective.' } };
@@ -582,7 +607,7 @@ export async function createBoost(input: BoostCreateInput) {
     return { success: false, error: { code: 'VALIDATION_ERROR', message: websiteErrors[0] } };
   }
   const actId = input.adAccountId.startsWith('act_') ? input.adAccountId : `act_${input.adAccountId}`;
-  const account = await marketingGet(`/${actId}`, input.accessToken, { fields: 'currency,account_status,name,min_daily_budget' });
+  const account = await transport.get(`/${actId}`, input.accessToken, { fields: 'currency,account_status,name,min_daily_budget' });
   if (Number(account.account_status) !== 1) {
     return { success: false, error: { code: 'AD_ACCOUNT_NOT_ELIGIBLE', message: 'Ad account is not eligible (not ACTIVE).', details: `account_status=${account.account_status}` } };
   }
@@ -607,7 +632,7 @@ export async function createBoost(input: BoostCreateInput) {
 
   try {
     failedStep = 'campaign';
-    const campaign = await marketingPost(`/${actId}/campaigns`, input.accessToken, {
+    const campaign = await transport.post(`/${actId}/campaigns`, input.accessToken, {
       name: `IG Boost — ${objective.label} — ${new Date().toISOString().slice(0, 10)}`,
       objective: objective.campaignObjective,
       status,
@@ -618,7 +643,7 @@ export async function createBoost(input: BoostCreateInput) {
 
     failedStep = 'adset';
     const targeting = buildTargeting(input);
-    const adSet = await marketingPost(`/${actId}/adsets`, input.accessToken, {
+    const adSet = await transport.post(`/${actId}/adsets`, input.accessToken, {
       name: `IG Boost Ad Set — ${input.mediaId}`,
       campaign_id: campaign.id,
       daily_budget: dailyBudgetMinor,
@@ -636,11 +661,11 @@ export async function createBoost(input: BoostCreateInput) {
 
     // Creative step rejects Development Mode apps (Meta subcode 1885183)
     failedStep = 'creative';
-    const creative = await marketingPost(`/${actId}/adcreatives`, input.accessToken, buildCreativePayload(input, objective));
+    const creative = await transport.post(`/${actId}/adcreatives`, input.accessToken, buildCreativePayload(input, objective));
     partial.creativeId = creative.id;
 
     failedStep = 'ad';
-    const ad = await marketingPost(`/${actId}/ads`, input.accessToken, {
+    const ad = await transport.post(`/${actId}/ads`, input.accessToken, {
       name: `IG Boost Ad — ${input.mediaId}`,
       adset_id: adSet.id,
       creative: { creative_id: creative.id },

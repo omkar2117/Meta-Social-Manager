@@ -151,7 +151,11 @@ console.log('Boost objective / websiteUrl tests (local only — no Meta create)\
     baseInput({ objective: 'messages', websiteUrl: leftover }),
     msgObj
   );
-  assert(!profileCreative.call_to_action, '6e. Profile creative has no website CTA');
+  assert(
+    profileCreative.call_to_action?.type === 'VIEW_INSTAGRAM_PROFILE' &&
+      !profileCreative.call_to_action?.value?.link,
+    '6e. Profile creative uses VIEW_INSTAGRAM_PROFILE with no website link'
+  );
   assert(
     webCreative.call_to_action?.value?.link === leftover,
     '6f. Website creative includes the URL'

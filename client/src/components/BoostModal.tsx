@@ -112,7 +112,7 @@ export function BoostModal({
     durationDays: 7,
     startDate: dates.startDate,
     endDate: dates.endDate,
-    websiteUrl: profileWebsite || '',
+    websiteUrl: '',
     adAccountId: '',
     status: 'PAUSED',
   });
@@ -297,6 +297,22 @@ export function BoostModal({
     setRollbackInfo(null);
     setBillingUrl(null);
     try {
+      if (form.objective === 'website_visits') {
+        const url = form.websiteUrl.trim();
+        let valid = false;
+        try {
+          const parsed = new URL(url);
+          valid = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        } catch {
+          valid = false;
+        }
+        if (!valid) {
+          setError('A valid website URL is required for Website Visits.');
+          setErrorCode('VALIDATION_ERROR');
+          setStep('error');
+          return;
+        }
+      }
       const result = await createBoost({ ...buildPayload(), confirmCreate: true });
       if (!result.success) {
         // Never treat as success. Do not auto-retry Create Boost.
@@ -480,7 +496,18 @@ export function BoostModal({
                           className="mt-1"
                           checked={form.objective === obj.key}
                           onChange={() =>
-                            setForm((f) => ({ ...f, objective: obj.key as BoostObjectiveKey }))
+                            setForm((f) => ({
+                              ...f,
+                              objective: obj.key as BoostObjectiveKey,
+                              websiteUrl:
+                                obj.key === 'website_visits'
+                                  ? f.websiteUrl ||
+                                    (profileWebsite &&
+                                    /^https?:\/\//i.test(profileWebsite.trim())
+                                      ? profileWebsite.trim()
+                                      : '')
+                                  : '',
+                            }))
                           }
                         />
                         <div>
