@@ -29,6 +29,7 @@ const {
   buildBoostCreativePayloadForTest,
   buildBoostAdSetPayloadForTest,
   collectWebsiteLinkPaths,
+  collectExternalWebsiteLinkPaths,
 } = mod;
 
 let passed = 0;
@@ -51,6 +52,7 @@ function baseInput(overrides = {}) {
     pageId: '1075180269021869',
     igUserId: '17841417953955963',
     mediaId: 'media_1',
+    instagramUsername: 'test_ig_user',
     objective: 'profile_visits',
     audienceMode: 'automatic',
     locationCountries: ['IN'],
@@ -147,15 +149,18 @@ const msgObj = getObjectiveConfig('messages');
   const creative = buildBoostCreativePayloadForTest(input, profileObj);
   const adSet = buildBoostAdSetPayloadForTest(input, profileObj);
   const hits = [
-    ...collectWebsiteLinkPaths(creative),
-    ...collectWebsiteLinkPaths(adSet),
+    ...collectExternalWebsiteLinkPaths(creative),
+    ...collectExternalWebsiteLinkPaths(adSet),
   ];
   assert(
     creative.call_to_action?.type === 'VIEW_INSTAGRAM_PROFILE',
     'Profile Visits creative uses VIEW_INSTAGRAM_PROFILE'
   );
-  assert(!creative.call_to_action?.value?.link, 'Profile Visits CTA has no website link');
-  assert(hits.length === 0, `Profile Visits payload has no website URL/link fields (got ${hits})`);
+  assert(
+    creative.call_to_action?.value?.link === 'https://www.instagram.com/test_ig_user',
+    'Profile Visits CTA uses Instagram profile link'
+  );
+  assert(hits.length === 0, `Profile Visits payload has no external website URL/link fields (got ${hits})`);
 }
 
 // --- Messages → no website URL/link fields ---

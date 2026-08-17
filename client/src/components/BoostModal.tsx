@@ -38,6 +38,7 @@ interface BoostModalProps {
   accessToken: string;
   pageId: string;
   igUserId: string;
+  instagramUsername: string;
   profileWebsite?: string;
   onClose: () => void;
 }
@@ -69,6 +70,7 @@ export function BoostModal({
   accessToken,
   pageId,
   igUserId,
+  instagramUsername,
   profileWebsite,
   onClose,
 }: BoostModalProps) {
@@ -223,6 +225,7 @@ export function BoostModal({
       adAccountId: form.adAccountId,
       pageId,
       igUserId,
+      instagramUsername,
       mediaId: media.id,
       objective: form.objective,
       audienceMode: form.audienceMode,

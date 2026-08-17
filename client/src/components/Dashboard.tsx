@@ -86,6 +86,7 @@ export function Dashboard({ data, accessToken, isRefreshing, onRefresh, onDiscon
           accessToken={accessToken}
           pageId={data.page.id}
           igUserId={data.profile.id}
+          instagramUsername={data.profile.username}
           profileWebsite={data.profile.website}
           onClose={() => setBoostMedia(null)}
         />

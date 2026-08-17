@@ -53,6 +53,7 @@ function baseInput(overrides = {}) {
     pageId: '1075180269021869',
     igUserId: '17841417953955963',
     mediaId: 'media_1',
+    instagramUsername: 'test_ig_user',
     objective: 'profile_visits',
     audienceMode: 'automatic',
     locationCountries: ['IN'],

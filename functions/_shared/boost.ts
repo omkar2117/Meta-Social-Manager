@@ -76,6 +76,38 @@ export function isAbsoluteHttpUrl(value: string | undefined): boolean {
   }
 }
 
+/** Instagram usernames only — never a website host or invented facebook.com URL. */
+export function sanitizeInstagramUsername(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim().replace(/^@/, '');
+  if (!/^[A-Za-z0-9._]{1,30}$/.test(trimmed)) return undefined;
+  return trimmed;
+}
+
+/**
+ * Meta Profile Visit CTA link (Marketing API Instagram Profile Visit Ads).
+ * Format from Meta docs: https://www.instagram.com/<IG_USERNAME>
+ * This is an Instagram profile destination, not a website URL.
+ */
+export function buildInstagramProfileCtaLink(username: unknown): string | undefined {
+  const sanitized = sanitizeInstagramUsername(username);
+  if (!sanitized) return undefined;
+  return `https://www.instagram.com/${sanitized}`;
+}
+
+export function isInstagramProfileCtaLink(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  try {
+    const u = new URL(value.trim());
+    if (u.protocol !== 'https:') return false;
+    if (u.hostname !== 'www.instagram.com' && u.hostname !== 'instagram.com') return false;
+    const parts = u.pathname.split('/').filter(Boolean);
+    return parts.length === 1 && Boolean(sanitizeInstagramUsername(parts[0]));
+  } catch {
+    return false;
+  }
+}
+
 /** Objective-conditional website URL rules. Does not call Meta. */
 export function validateBoostWebsiteUrl(input: {
   objective: string;
@@ -228,6 +260,22 @@ export function collectWebsiteLinkPaths(value: unknown, path = ''): string[] {
     if (key === 'type' && nested === 'LEARN_MORE') hits.push(next);
     if (key === 'link' && typeof nested === 'string' && /^https?:\/\//i.test(nested)) hits.push(next);
     if (nested && typeof nested === 'object') hits.push(...collectWebsiteLinkPaths(nested, next));
+  }
+  return hits;
+}
+
+/** Website destinations only — Instagram profile CTA links are excluded. */
+export function collectExternalWebsiteLinkPaths(value: unknown, path = ''): string[] {
+  if (!value || typeof value !== 'object') return [];
+  const hits: string[] = [];
+  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    const next = path ? `${path}.${key}` : key;
+    if (key === 'websiteUrl' || key === 'website_url') hits.push(next);
+    if (key === 'type' && nested === 'LEARN_MORE') hits.push(next);
+    if (key === 'link' && typeof nested === 'string' && /^https?:\/\//i.test(nested) && !isInstagramProfileCtaLink(nested)) {
+      hits.push(next);
+    }
+    if (nested && typeof nested === 'object') hits.push(...collectExternalWebsiteLinkPaths(nested, next));
   }
   return hits;
 }
@@ -396,16 +444,20 @@ export async function fetchAdAccounts(accessToken: string) {
   });
 }
 
-export async function fetchAdAccountMinimumBudget(adAccountId: string, accessToken: string) {
+export async function fetchAdAccountMinimumBudget(
+  adAccountId: string,
+  accessToken: string,
+  get: BoostMetaTransport['get'] = marketingGet
+) {
   const actId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
   try {
-    const account = await marketingGet(`/${actId}`, accessToken, { fields: 'currency,min_daily_budget' });
+    const account = await get(`/${actId}`, accessToken, { fields: 'currency,min_daily_budget' });
     if (typeof account.min_daily_budget === 'number' && account.min_daily_budget > 0) {
       return { currency: account.currency || 'USD', minDailyBudgetMinor: account.min_daily_budget, source: 'ad_account.min_daily_budget' };
     }
   } catch { /* fallthrough */ }
   try {
-    const mins = await marketingGet(`/${actId}/minimum_budgets`, accessToken);
+    const mins = await get(`/${actId}/minimum_budgets`, accessToken);
     const row = mins.data?.[0];
     if (row) {
       const minor = row.min_daily_budget_imp ?? row.min_daily_budget_high_freq ?? row.min_daily_budget_low_freq ?? null;
@@ -415,8 +467,12 @@ export async function fetchAdAccountMinimumBudget(adAccountId: string, accessTok
   return { currency: 'USD', minDailyBudgetMinor: null, source: 'unavailable' };
 }
 
-export async function checkBoostEligibility(mediaId: string, accessToken: string) {
-  const data = await marketingGet(`/${mediaId}`, accessToken, {
+export async function checkBoostEligibility(
+  mediaId: string,
+  accessToken: string,
+  get: BoostMetaTransport['get'] = marketingGet
+) {
+  const data = await get(`/${mediaId}`, accessToken, {
     fields: 'id,media_type,media_product_type,boost_eligibility_info',
   });
   const info = data.boost_eligibility_info;
@@ -469,6 +525,7 @@ export interface BoostCreateInput {
   startDate: string;
   endDate: string;
   websiteUrl?: string;
+  instagramUsername?: string;
   status?: 'PAUSED' | 'ACTIVE';
 }
 
@@ -542,8 +599,15 @@ function buildCreativePayload(input: BoostCreateInput, objective: BoostObjective
     }
     creative.call_to_action = { type: 'LEARN_MORE', value: { link: websiteUrl } };
   } else if (objective.key === 'profile_visits') {
-    // Meta Ad attach requires a profile destination CTA — not a website URL.
-    creative.call_to_action = { type: 'VIEW_INSTAGRAM_PROFILE' };
+    // Meta v25 Profile Visit creatives require CTA value.link = Instagram profile URL.
+    const profileLink = buildInstagramProfileCtaLink(input.instagramUsername);
+    if (!profileLink) {
+      throw new Error('Instagram username is required for Profile Visits.');
+    }
+    creative.call_to_action = {
+      type: 'VIEW_INSTAGRAM_PROFILE',
+      value: { link: profileLink },
+    };
   } else if (objective.key === 'messages') {
     creative.call_to_action = { type: 'MESSAGE_PAGE', value: { app_destination: 'INSTAGRAM_DIRECT' } };
   }
@@ -606,18 +670,29 @@ export async function createBoost(input: BoostCreateInput, transport: BoostMetaT
   if (websiteErrors.length) {
     return { success: false, error: { code: 'VALIDATION_ERROR', message: websiteErrors[0] } };
   }
+  if (objective.key === 'profile_visits') {
+    let username = sanitizeInstagramUsername(input.instagramUsername);
+    if (!username) {
+      const ig = await transport.get(`/${input.igUserId}`, input.accessToken, { fields: 'username' });
+      username = sanitizeInstagramUsername(ig?.username);
+    }
+    if (!username) {
+      return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Instagram username is required for Profile Visits.' } };
+    }
+    input = { ...input, instagramUsername: username };
+  }
   const actId = input.adAccountId.startsWith('act_') ? input.adAccountId : `act_${input.adAccountId}`;
   const account = await transport.get(`/${actId}`, input.accessToken, { fields: 'currency,account_status,name,min_daily_budget' });
   if (Number(account.account_status) !== 1) {
     return { success: false, error: { code: 'AD_ACCOUNT_NOT_ELIGIBLE', message: 'Ad account is not eligible (not ACTIVE).', details: `account_status=${account.account_status}` } };
   }
   const currency = account.currency || 'USD';
-  const minInfo = await fetchAdAccountMinimumBudget(actId, input.accessToken);
+  const minInfo = await fetchAdAccountMinimumBudget(actId, input.accessToken, transport.get);
   const validationErrors = validateBoostInput(input, currency, minInfo.minDailyBudgetMinor);
   if (validationErrors.length) {
     return { success: false, error: { code: 'VALIDATION_ERROR', message: validationErrors[0], details: validationErrors.join(' | ') } };
   }
-  const eligibility = await checkBoostEligibility(input.mediaId, input.accessToken);
+  const eligibility = await checkBoostEligibility(input.mediaId, input.accessToken, transport.get);
   if (!eligibility.eligible) {
     return { success: false, error: { code: 'MEDIA_NOT_ELIGIBLE', message: eligibility.reason || 'Post is not eligible for promotion.' } };
   }
@@ -736,6 +811,7 @@ export function parseCreateBody(body: any): BoostCreateInput {
     startDate: body.startDate,
     endDate: body.endDate,
     websiteUrl: normalizeBoostWebsiteUrl(body.objective, body.websiteUrl),
+    instagramUsername: sanitizeInstagramUsername(body.instagramUsername),
     status: body.status === 'ACTIVE' ? 'ACTIVE' : 'PAUSED',
   };
 }

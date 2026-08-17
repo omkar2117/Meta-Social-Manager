@@ -55,6 +55,7 @@ function baseInput(overrides = {}) {
     pageId: 'page_1',
     igUserId: 'ig_1',
     mediaId: 'media_1',
+    instagramUsername: 'test_ig_user',
     objective: 'profile_visits',
     audienceMode: 'automatic',
     locationCountries: ['US'],
@@ -153,8 +154,9 @@ console.log('Boost objective / websiteUrl tests (local only — no Meta create)\
   );
   assert(
     profileCreative.call_to_action?.type === 'VIEW_INSTAGRAM_PROFILE' &&
-      !profileCreative.call_to_action?.value?.link,
-    '6e. Profile creative uses VIEW_INSTAGRAM_PROFILE with no website link'
+      profileCreative.call_to_action?.value?.link === 'https://www.instagram.com/test_ig_user' &&
+      profileCreative.call_to_action?.value?.link !== leftover,
+    '6e. Profile creative uses VIEW_INSTAGRAM_PROFILE with Instagram profile link, not websiteUrl'
   );
   assert(
     webCreative.call_to_action?.value?.link === leftover,

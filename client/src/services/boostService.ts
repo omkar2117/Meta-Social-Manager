@@ -89,6 +89,7 @@ export interface BoostRequestPayload {
   adAccountId: string;
   pageId: string;
   igUserId: string;
+  instagramUsername?: string;
   mediaId: string;
   objective: string;
   audienceMode: 'automatic' | 'custom';

@@ -13,6 +13,7 @@ import {
   validateBoostInput,
   validateBoostWebsiteUrl,
   normalizeBoostWebsiteUrl,
+  sanitizeInstagramUsername,
   type BoostCreateInput,
   type BoostObjectiveKey,
 } from '../utils/boostApi';
@@ -151,6 +152,7 @@ function parseCreateBody(body: any): BoostCreateInput {
     startDate: body.startDate,
     endDate: body.endDate,
     websiteUrl: normalizeBoostWebsiteUrl(body.objective, body.websiteUrl),
+    instagramUsername: sanitizeInstagramUsername(body.instagramUsername),
     status: body.status === 'ACTIVE' ? 'ACTIVE' : 'PAUSED',
   };
 }
