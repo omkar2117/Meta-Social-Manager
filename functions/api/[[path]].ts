@@ -11,6 +11,7 @@ import {
   searchAdInterests,
   searchAdLocations,
   validateBoostInput,
+  validateBoostWebsiteUrl,
 } from '../_shared/boost';
 import { getBoostReadiness } from '../_shared/boostReadiness';
 import { discoverFacebookPages, type GraphGetFn } from '../_shared/pageDiscovery';
@@ -434,6 +435,14 @@ export const onRequest: PagesFunction = async (context) => {
           const objective = getObjectiveConfig(input.objective);
           if (!objective) {
             return new Response(JSON.stringify({ code: 'INVALID_OBJECTIVE', message: 'Unsupported boost objective.' }), { headers, status: 400 });
+          }
+          const websiteErrors = validateBoostWebsiteUrl(input);
+          if (websiteErrors.length) {
+            return new Response(JSON.stringify({
+              code: 'VALIDATION_ERROR',
+              message: websiteErrors[0],
+              details: websiteErrors.join(' | '),
+            }), { headers, status: 400 });
           }
           const minInfo = await fetchAdAccountMinimumBudget(input.adAccountId, accessToken);
           const validationErrors = validateBoostInput(input, minInfo.currency, minInfo.minDailyBudgetMinor);

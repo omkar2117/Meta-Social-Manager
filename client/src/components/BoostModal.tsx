@@ -122,7 +122,6 @@ export function BoostModal({
     [accounts, form.adAccountId]
   );
   const currency = selectedAccount?.currency || 'USD';
-  const selectedObjective = objectives.find((o) => o.key === form.objective);
 
   const minDailyMajor =
     minDailyMinor !== null ? minDailyMinor / currencyOffset(currency) : null;
@@ -238,7 +237,7 @@ export function BoostModal({
       dailyBudget: form.dailyBudget,
       startDate: new Date(form.startDate).toISOString(),
       endDate: new Date(form.endDate).toISOString(),
-      websiteUrl: form.objective === 'website_visits' ? form.websiteUrl : undefined,
+      websiteUrl: form.objective === 'website_visits' ? form.websiteUrl.trim() : undefined,
       status: form.status,
     };
   };
@@ -250,6 +249,20 @@ export function BoostModal({
       if (eligible === false) {
         setError(eligibilityNote || 'Post is not eligible for promotion.');
         return;
+      }
+      if (form.objective === 'website_visits') {
+        const url = form.websiteUrl.trim();
+        let valid = false;
+        try {
+          const parsed = new URL(url);
+          valid = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        } catch {
+          valid = false;
+        }
+        if (!valid) {
+          setError('A valid website URL is required for Website Visits.');
+          return;
+        }
       }
       // Refresh readiness from production API (never fake unlock in the UI)
       const ready = await fetchBoostReadiness();
@@ -481,9 +494,10 @@ export function BoostModal({
                       </label>
                     ))}
                   </div>
-                  {selectedObjective?.requiresWebsiteUrl && (
+                  {form.objective === 'website_visits' && (
                     <input
                       type="url"
+                      required
                       placeholder="Website URL (https://…)"
                       value={form.websiteUrl}
                       onChange={(e) => setForm((f) => ({ ...f, websiteUrl: e.target.value }))}
@@ -776,8 +790,11 @@ export function BoostModal({
                   <Row label="Objective" value={review.objective.label} />
                   <Row
                     label="Meta mapping"
-                    value={`${review.objective.campaignObjective} / ${review.objective.optimizationGoal}`}
+                    value={`${review.objective.campaignObjective} / ${review.objective.optimizationGoal} / ${review.objective.destinationType}`}
                   />
+                  {review.objective.key === 'website_visits' && (
+                    <Row label="Website URL" value={review.websiteUrl || '—'} />
+                  )}
                   <Row label="Audience" value={review.audienceMode} />
                   <Row label="Locations" value={review.locationCountries.join(', ')} />
                   <Row

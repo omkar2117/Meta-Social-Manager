@@ -11,6 +11,8 @@ import {
   searchAdInterests,
   searchAdLocations,
   validateBoostInput,
+  validateBoostWebsiteUrl,
+  normalizeBoostWebsiteUrl,
   type BoostCreateInput,
   type BoostObjectiveKey,
 } from '../utils/boostApi';
@@ -148,7 +150,7 @@ function parseCreateBody(body: any): BoostCreateInput {
     dailyBudgetMajor: Number(body.dailyBudget),
     startDate: body.startDate,
     endDate: body.endDate,
-    websiteUrl: body.websiteUrl,
+    websiteUrl: normalizeBoostWebsiteUrl(body.objective, body.websiteUrl),
     status: body.status === 'ACTIVE' ? 'ACTIVE' : 'PAUSED',
   };
 }
@@ -163,6 +165,16 @@ router.post('/review', async (req, res) => {
     const objective = getObjectiveConfig(input.objective);
     if (!objective) {
       res.status(400).json({ code: 'INVALID_OBJECTIVE', message: 'Unsupported boost objective.' });
+      return;
+    }
+
+    const websiteErrors = validateBoostWebsiteUrl(input);
+    if (websiteErrors.length) {
+      res.status(400).json({
+        code: 'VALIDATION_ERROR',
+        message: websiteErrors[0],
+        details: websiteErrors.join(' | '),
+      });
       return;
     }
 

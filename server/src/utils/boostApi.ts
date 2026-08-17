@@ -68,6 +68,40 @@ export function getObjectiveConfig(key: string): BoostObjectiveConfig | undefine
   return BOOST_OBJECTIVES.find((o) => o.key === key);
 }
 
+/** Website URL is only used for website_visits. Never invent facebook.com / instagram.com. */
+export function normalizeBoostWebsiteUrl(
+  objective: string | undefined,
+  websiteUrl: unknown
+): string | undefined {
+  if (objective !== 'website_visits') return undefined;
+  if (typeof websiteUrl !== 'string') return undefined;
+  const trimmed = websiteUrl.trim();
+  return trimmed.length ? trimmed : undefined;
+}
+
+export function isAbsoluteHttpUrl(value: string | undefined): boolean {
+  try {
+    const u = new URL((value || '').trim());
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/** Objective-conditional website URL rules. Does not call Meta. */
+export function validateBoostWebsiteUrl(input: {
+  objective: string;
+  websiteUrl?: string;
+}): string[] {
+  const objective = getObjectiveConfig(input.objective);
+  if (!objective) return [];
+  if (!objective.requiresWebsiteUrl) return [];
+  if (!isAbsoluteHttpUrl(input.websiteUrl)) {
+    return ['A valid website URL is required for Website Visits.'];
+  }
+  return [];
+}
+
 export function currencyOffset(currency: string): number {
   return CURRENCY_OFFSETS[currency?.toUpperCase()] ?? 100;
 }
@@ -647,7 +681,23 @@ export function buildBoostTargetingForTest(input: BoostCreateInput): Record<stri
   return buildTargeting(input);
 }
 
+/** Ad Set destination + promoted_object. Does not call Meta. */
+export function buildBoostPromotedObject(
+  input: Pick<BoostCreateInput, 'pageId' | 'igUserId'>,
+  objective: BoostObjectiveConfig
+): Record<string, string> {
+  const promoted: Record<string, string> = { page_id: input.pageId };
+  if (
+    objective.destinationType === 'INSTAGRAM_PROFILE' ||
+    objective.destinationType === 'INSTAGRAM_DIRECT'
+  ) {
+    if (input.igUserId) promoted.instagram_user_id = input.igUserId;
+  }
+  return promoted;
+}
+
 function buildCreativePayload(input: BoostCreateInput, objective: BoostObjectiveConfig) {
+  const websiteUrl = normalizeBoostWebsiteUrl(objective.key, input.websiteUrl);
   const creative: Record<string, unknown> = {
     name: `IG Boost Creative ${input.mediaId} ${Date.now()}`,
     object_id: input.pageId,
@@ -656,12 +706,12 @@ function buildCreativePayload(input: BoostCreateInput, objective: BoostObjective
   };
 
   if (objective.key === 'website_visits') {
-    if (!input.websiteUrl) {
+    if (!websiteUrl || !isAbsoluteHttpUrl(websiteUrl)) {
       throw new Error('A website URL is required for the Website Visits objective.');
     }
     creative.call_to_action = {
       type: 'LEARN_MORE',
-      value: { link: input.websiteUrl },
+      value: { link: websiteUrl },
     };
   }
 
@@ -673,6 +723,14 @@ function buildCreativePayload(input: BoostCreateInput, objective: BoostObjective
   }
 
   return creative;
+}
+
+/** Exported for local payload verification only — does not call Meta. */
+export function buildBoostCreativePayloadForTest(
+  input: BoostCreateInput,
+  objective: BoostObjectiveConfig
+): Record<string, unknown> {
+  return buildCreativePayload(input, objective);
 }
 
 export function validateBoostInput(input: BoostCreateInput, currency: string, minDailyMinor: number | null): string[] {
@@ -736,14 +794,7 @@ export function validateBoostInput(input: BoostCreateInput, currency: string, mi
   }
 
   if (objective?.requiresWebsiteUrl) {
-    try {
-      const u = new URL(input.websiteUrl || '');
-      if (!['http:', 'https:'].includes(u.protocol)) {
-        errors.push('Website URL must use http or https.');
-      }
-    } catch {
-      errors.push('A valid website URL is required for Website Visits.');
-    }
+    errors.push(...validateBoostWebsiteUrl(input));
   }
 
   return errors;
@@ -755,6 +806,18 @@ export async function createBoost(input: BoostCreateInput): Promise<BoostCreateR
     return {
       success: false,
       error: { code: 'INVALID_OBJECTIVE', message: 'Unsupported boost objective.' },
+    };
+  }
+
+  input = {
+    ...input,
+    websiteUrl: normalizeBoostWebsiteUrl(input.objective, input.websiteUrl),
+  };
+  const websiteErrors = validateBoostWebsiteUrl(input);
+  if (websiteErrors.length) {
+    return {
+      success: false,
+      error: { code: 'VALIDATION_ERROR', message: websiteErrors[0] },
     };
   }
 
@@ -835,7 +898,7 @@ export async function createBoost(input: BoostCreateInput): Promise<BoostCreateR
       optimization_goal: objective.optimizationGoal,
       bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
       destination_type: objective.destinationType,
-      promoted_object: { page_id: input.pageId },
+      promoted_object: buildBoostPromotedObject(input, objective),
       targeting,
       start_time: startTime,
       end_time: endTime,
